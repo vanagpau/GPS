@@ -226,3 +226,20 @@ plots.map <- plot_grid(world.posrecip, world.negrecip, world.altruism, world.tru
 print(plots.map) 
 
 ```
+
+
+## Simple visualisation
+```{r}
+df.mod %>% ggplot(aes(x = age.r, y = altruism))+ 
+    geom_point(
+        color="orange",
+        fill="#69b3a2",
+        shape=21,
+        alpha=0.05,
+        size=1,
+        stroke = 2
+        )
+
+
+
+```
