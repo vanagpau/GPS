@@ -64,7 +64,21 @@ for (v in 1:length(vars)) {
   var <- vars[v]
   var.lab <- var.labs[v]
   
-  plot.age <- ggplot(df, aes(x = age.r, y = get(var))) + 
+  df.mod <- df %>% 
+    dplyr::rename("outcome" = paste(var)) %>% 
+    drop_na(c("outcome","age"))
+  
+  for (j in 1:5) {
+    df.sample <- sample_n(df.mod, 5000)
+  
+  model.age <- lmer(outcome ~ gender + poly(age,2) + (1 | country) + (0 + age | country), data = df.sample, control = lmerControl(optimizer="bobyqa", optCtrl=list(maxfun=2e5)))
+  
+  results.age <- model_parameters(model.age, df_method = "satterthwaite", standardize = "refit")
+
+  table.age <- kable(results.age) %>% kable_styling()
+  print(table.age)
+  
+  plot.age <- ggplot(df.sample, aes(x = age.r, y = outcome)) + 
     geom_point(color = dotcols[1], shape = 21, fill = NA, alpha = 0.01, size = 1, show.legend = FALSE) + 
     geom_smooth(color = dotcols[1], fill = dotcols[1], linetype = "solid", method = "lm", formula = y ~ poly(x,2), alpha = 0.3, size = 0.75, show.legend = FALSE) + 
     scale_x_continuous(name = "Age") +
@@ -75,19 +89,8 @@ for (v in 1:length(vars)) {
           axis.title.y = element_markdown(size = axtitle))
   
   print(plot.age)
-  
-  df.mod <- df %>% 
-    dplyr::rename("outcome" = paste(var)) %>% 
-    drop_na(c("outcome","age"))
-  
-  model.age <- lmer(outcome ~ gender + poly(age,2) + (1 | country) + (0 + age | country), data = df.mod, control = lmerControl(optimizer="bobyqa", optCtrl=list(maxfun=2e5)))
-  
-  results.age <- model_parameters(model.age, df_method = "satterthwaite", standardize = "refit")
-
-  table.age <- kable(results.age) %>% kable_styling()
-  print(table.age)
   cat("\n")
-  
+  }
 }
 
 ```
