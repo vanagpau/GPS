@@ -1,2 +1,2 @@
 # GPS
-Dissertation work on Global Preference Survey
+Analysis on Global Preference Survey
