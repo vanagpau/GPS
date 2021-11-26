@@ -162,7 +162,7 @@ world_map <- map_data("world") %>%
 #map world_map countries to ISO codes
 world_map$code <- countrycode(world_map$region, 'country.name', 'iso3c')
 
-# # select countries in dataset
+# # # select countries in dataset
 # continents <- df %>% 
 #   select("isocode", "Continent") %>% 
 #   distinct()
