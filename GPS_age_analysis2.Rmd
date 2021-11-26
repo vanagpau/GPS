@@ -159,8 +159,6 @@ country.results.all <- country.results
 world_map <- map_data("world") %>%
   subset(region != "Antarctica")
 
-# world_map <- map_data("world") %>% select(long, lat, region, group) %>% group_by(region) %>% summarise(long = mean(long), lat = mean(lat), group, order, region, subregion) %>% ungroup()
-
 #map world_map countries to ISO codes
 world_map$code <- countrycode(world_map$region, 'country.name', 'iso3c')
 
