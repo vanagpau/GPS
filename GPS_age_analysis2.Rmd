@@ -16,6 +16,7 @@ options(digits = 4)
 require(pacman)
 pacman::p_load(car,
                cowplot,
+               countrycode,
                effectsize,
                ggtext,
                GPArotation, 
@@ -240,17 +241,18 @@ print(plots.map)
 ```
 
 
-## Simple visualisation
+## Testing models
 ```{r}
-df.mod %>% ggplot(aes(x = age.r, y = altruism))+ 
-    geom_point(
-        color="orange",
-        fill="#69b3a2",
-        shape=21,
-        alpha=0.05,
-        size=1,
-        stroke = 2
-        )
+
+m1 <- lmer(altruism ~ age + gender + (1 + age|country), data = df.mod)
+summary(m1)
+
+random_slopes <- xyplot(altruism ~ age|country, data = df.mod, type = c("r", "p"), xlim = c("1", "2", "3", "4"), xlab = "Age", ylab = "Altruism", par.strip.text=list(cex=.5), par.settings=simpleTheme(col="red", col.line="blue", alpha = 0.2), scales=list(cex=0.5))
+random_slopes
+
+m2 <- lmer(altruism ~ age * outcome + gender + (1 + age|country), data = df.mod)
+summary(m2)
+
 
 
 
