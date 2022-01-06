@@ -37,6 +37,8 @@ pacman::p_load(car,
 )
 ```
 
+##Data wrangle
+
 ```{r results = "asis"}
 
 df <- read_dta("individual_new.dta") 
@@ -68,6 +70,13 @@ for (v in 1:length(vars)) {
   df.mod <- df %>% 
     dplyr::rename("outcome" = paste(var)) %>% 
     drop_na(c("outcome","age"))
+}
+
+```
+
+##Plotting main effects
+```{r, eval = FALSE}
+
   
   for (j in 1:5) {
     df.sample <- sample_n(df.mod, 5000)
@@ -92,13 +101,13 @@ for (v in 1:length(vars)) {
   print(plot.age)
   cat("\n")
   }
-}
+
 
 ```
 
 ## Quantification of effects in each country 
 
-```{r fig.align="center", fig.width=10, fig.height=8}
+```{r fig.align="center", fig.width=10, fig.height=8, eval=FALSE}
 
 # cntry.list <- read.csv("List_countries.csv", sep = ",", header = TRUE) # list of countries
 cntry.list <- df %>% 
@@ -179,7 +188,7 @@ df.world <- left_join(world_map %>% select(-region), country.results, by = "code
 
 
 # Create plots
-```{r fig.align="center", fig.width=10, fig.height=8}
+```{r fig.align="center", fig.width=10, fig.height=8, eval=FALSE}
 
 
 # create a map figure for each outcome (distancing, negrecip giving, and internegrecip giving)
@@ -242,7 +251,7 @@ print(plots.map)
 
 
 ## Testing models
-```{r}
+```{r, eval=FALSE}
 
 m1 <- lmer(altruism ~ age + gender + (1 + age|country), data = df.mod)
 summary(m1)
