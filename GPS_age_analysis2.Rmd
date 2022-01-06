@@ -18,6 +18,7 @@ pacman::p_load(car,
                cowplot,
                countrycode,
                effectsize,
+               factoextra,
                ggtext,
                GPArotation, 
                haven,
@@ -62,6 +63,67 @@ neg.corr.col <-  "#00A7DD"
 vars <- c("posrecip", "negrecip", "altruism", "trust")
 var.labs <- c("Positive reciprocity", "Negative reciprocity", "Altruism", "Trust")
 
+
+```
+
+## PCA
+```{r}
+
+#without weighting, with neg reciprocity
+df.dropna <- df %>% drop_na(c("posrecip", "negrecip", "altruism", "trust"))
+
+cor(df.dropna[,c("posrecip", "negrecip", "altruism", "trust")])
+
+dat.pca <- prcomp(df.dropna[,c("posrecip", "negrecip", "altruism", "trust")], scale = TRUE)
+
+summary(dat.pca)
+
+fviz_eig(dat.pca)
+
+fviz_pca_var(dat.pca,
+             col.var = "contrib", # Color by contributions to the PC
+             gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"),
+             repel = TRUE     # Avoid text overlapping
+             )
+
+get_eigenvalue(dat.pca)
+
+
+#without weighting, without neg reciprocity
+df.dropna <- df %>% drop_na(c("posrecip", "altruism", "trust"))
+
+cor(df.dropna[,c("posrecip", "altruism", "trust")])
+
+dat.pca <- prcomp(df.dropna[,c("posrecip", "altruism", "trust")], scale = TRUE)
+
+summary(dat.pca)
+
+fviz_eig(dat.pca)
+
+fviz_pca_var(dat.pca,
+             col.var = "contrib", # Color by contributions to the PC
+             gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"),
+             repel = TRUE     # Avoid text overlapping
+             )
+
+get_eigenvalue(dat.pca)
+
+#loadings of variable on each component
+dat.pca$rotation
+
+dat.var <- get_pca_var(dat.pca)
+dat.var$coord          # Coordinates
+dat.var$contrib        # Contributions to the PCs
+dat.var$cos2           # Quality of representation 
+
+
+```
+
+
+
+##Plotting main effects
+```{r, eval = FALSE}
+
 for (v in 1:length(vars)) {
   
   var <- vars[v]
@@ -70,13 +132,6 @@ for (v in 1:length(vars)) {
   df.mod <- df %>% 
     dplyr::rename("outcome" = paste(var)) %>% 
     drop_na(c("outcome","age"))
-}
-
-```
-
-##Plotting main effects
-```{r, eval = FALSE}
-
   
   for (j in 1:5) {
     df.sample <- sample_n(df.mod, 5000)
@@ -101,7 +156,7 @@ for (v in 1:length(vars)) {
   print(plot.age)
   cat("\n")
   }
-
+}
 
 ```
 
