@@ -169,7 +169,7 @@ print(fit, digits=2, cutoff=.3, sort=TRUE)
 
 
 ##Plotting main effects
-```{r}
+```{r, message=FALSE, warning=FALSE}
 
 for (v in 1:length(vars)) {
   
@@ -187,8 +187,9 @@ for (v in 1:length(vars)) {
   
   results.age <- model_parameters(model.age, df_method = "satterthwaite", standardize = "refit")
 
-  table.age <- kable(results.age) %>% kable_styling()
-  print(table.age)
+  # table.age <- kable(results.age) %>% kable_styling()
+  # print(table.age)
+  print(results.age)
   
   plot.age <- ggplot(df.sample, aes(x = age.r, y = outcome)) + 
     geom_point(color = dotcols[1], shape = 21, fill = NA, alpha = 0.01, size = 1, show.legend = FALSE) + 
@@ -209,7 +210,7 @@ for (v in 1:length(vars)) {
 
 ## Quantification of effects in each country 
 
-```{r fig.align="center", fig.width=10, fig.height=8}
+```{r fig.align="center", fig.width=10, fig.height=8, eval=FALSE}
 
 # cntry.list <- read.csv("List_countries.csv", sep = ",", header = TRUE) # list of countries
 cntry.list <- df %>% 
@@ -293,7 +294,7 @@ df.world <- left_join(world_map %>% select(-region), country.results, by = "code
 
 
 # Create plots
-```{r fig.align="center", fig.width=10, fig.height=8}
+```{r fig.align="center", fig.width=10, fig.height=8, eval=FALSE}
 
 
 # create a map figure for each outcome (distancing, negrecip giving, and internegrecip giving)
