@@ -30,6 +30,7 @@ pacman::p_load(car,
                lme4, 
                lmerTest,
                mediation,
+               nFactors,
                parameters, 
                psych,
                scales,
@@ -122,7 +123,6 @@ df$prosocial <- (dat.var$contrib[1]*df$posrecip +
 # Exploratory Factor analysis
 
 # Determine Number of Factors to Extract with Neg Recip
-library(nFactors)
 
 ev <- eigen(cor(df.dropna)) # get eigenvalues
 
@@ -169,7 +169,7 @@ print(fit, digits=2, cutoff=.3, sort=TRUE)
 
 
 ##Plotting main effects
-```{r, eval = FALSE}
+```{r}
 
 for (v in 1:length(vars)) {
   
@@ -209,7 +209,7 @@ for (v in 1:length(vars)) {
 
 ## Quantification of effects in each country 
 
-```{r fig.align="center", fig.width=10, fig.height=8, eval=FALSE}
+```{r fig.align="center", fig.width=10, fig.height=8}
 
 # cntry.list <- read.csv("List_countries.csv", sep = ",", header = TRUE) # list of countries
 cntry.list <- df %>% 
@@ -217,7 +217,7 @@ cntry.list <- df %>%
 cntry.list <- unique(cntry.list)
 
 # create a dataframe with the country information and columns of NA to fill in below
-countrycols <- c("code", "region", "posrecip", "negrecip", "altruism", "trust", "n")
+countrycols <- c("code", "region", "posrecip", "negrecip", "altruism", "trust", "prosocial", "n")
 # country.results <- data.frame(cntry.list$ISO3, cntry.list$Map.Name, matrix(data = NA, nrow = nrow(cntry.list), ncol = (length(countrycols) - 2)))
 country.results <- data.frame(cntry.list$isocode, cntry.list$country, matrix(data = NA, nrow = length(cntry.list), ncol = (length(countrycols) - 2)))
 names(country.results) <- countrycols
@@ -229,21 +229,24 @@ for (c in country.results$code) {
   cdf <- subset(df, isocode == c) # select rows from that country
   
   # standardise variables
-  cdf[,c("age", "posrecip", "negrecip", "altruism", "trust")] <- scale(cdf[,c("age", "posrecip", "negrecip", "altruism", "trust")])
+  cdf[,c("age", "posrecip", "negrecip", "altruism", "trust", "prosocial")] <- scale(cdf[,c("age", "posrecip", "negrecip", "altruism", "trust", "prosocial")])
   
   # run linear model for each outcome & extract parameters
   cntry.p <- model_parameters(lm(posrecip ~ gender + age, data = cdf), standardize = "refit")
   cntry.n <- model_parameters(lm(negrecip ~ gender + age, data = cdf), standardize = "refit")
   cntry.a <- model_parameters(lm(altruism ~ gender + age, data = cdf), standardize = "refit")
   cntry.t <- model_parameters(lm(trust ~ gender + age, data = cdf), standardize = "refit")
-  country.results[country.results$code == c, 3:6] = c(tail(cntry.p$Coefficient,1),
+  cntry.pr <- model_parameters(lm(prosocial ~ gender + age, data = cdf), standardize = "refit")
+  country.results[country.results$code == c, 3:7] = c(tail(cntry.p$Coefficient,1),
                                                       tail(cntry.n$Coefficient,1), 
                                                       tail(cntry.a$Coefficient,1),
-                                                      tail(cntry.t$Coefficient,1))
-  country.results.p[country.results.p$code == c, 3:6] = c(tail(cntry.p$p,1),
+                                                      tail(cntry.t$Coefficient,1),
+                                                      tail(cntry.pr$Coefficient,1))
+  country.results.p[country.results.p$code == c, 3:7] = c(tail(cntry.p$p,1),
                                                           tail(cntry.n$p,1), 
                                                           tail(cntry.a$p,1), 
-                                                          tail(cntry.t$p,1))
+                                                          tail(cntry.t$p,1),
+                                                          tail(cntry.pr$p,1))
   country.results$n[country.results$code == c] = nrow(cdf)
 
 }
@@ -290,7 +293,7 @@ df.world <- left_join(world_map %>% select(-region), country.results, by = "code
 
 
 # Create plots
-```{r fig.align="center", fig.width=10, fig.height=8, eval=FALSE}
+```{r fig.align="center", fig.width=10, fig.height=8}
 
 
 # create a map figure for each outcome (distancing, negrecip giving, and internegrecip giving)
@@ -343,10 +346,20 @@ world.trust <- ggplot(df.world, aes(long, lat, group = group)) +
   theme_void() +
   draw_plot_label("Trust", x = -180, y = -35, hjust = 0, vjust = 0, angle = 90, size = axtitle, fontface = "plain")
 
+
+world.prosocial <- ggplot(df.world, aes(long, lat, group = group)) +
+  geom_polygon(aes(fill = prosocial), color = "white", size = .1) +
+    scale_fill_gradient2(low = neg.corr.col, mid = "white", high = pos.corr.col, midpoint = 0, na.value = "#ECECEC", name = expression(beta)) +
+  theme_void() +
+  draw_plot_label("Prosociality", x = -180, y = -35, hjust = 0, vjust = 0, angle = 90, size = axtitle, fontface = "plain")
+
+print(world.prosocial)
+
 # europe.trust
 
-plots.map <- plot_grid(world.posrecip, world.negrecip, world.altruism, world.trust,
-                       align = "v", nrow = 2, labels = c("a", "", "b", "", "c", ""), label_size = axtitle-4)
+plots.map <- plot_grid(world.posrecip, world.negrecip, world.altruism, world.trust, world.prosocial,
+                        align = "v", nrow = 3, labels = c("a", "", "b", "", "c", ""), label_size = axtitle-4)
+
 print(plots.map)
 
 ```
