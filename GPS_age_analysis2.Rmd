@@ -60,8 +60,8 @@ dotcols <- c("#A363D9")
 pos.corr.col <- "#CA4640" 
 neg.corr.col <-  "#00A7DD"
 
-vars <- c("posrecip", "negrecip", "altruism", "trust")
-var.labs <- c("Positive reciprocity", "Negative reciprocity", "Altruism", "Trust")
+vars <- c("posrecip", "negrecip", "altruism", "trust", "prosocial")
+var.labs <- c("Positive reciprocity", "Negative reciprocity", "Altruism", "Trust", "Prosociality")
 
 
 ```
@@ -70,7 +70,7 @@ var.labs <- c("Positive reciprocity", "Negative reciprocity", "Altruism", "Trust
 ```{r}
 
 #without weighting, with neg reciprocity
-df.dropna <- df %>% drop_na(c("posrecip", "negrecip", "altruism", "trust"))
+df.dropna <- df %>% drop_na(c("posrecip", "negrecip", "altruism", "trust")) %>% select(posrecip, negrecip, altruism, trust)
 
 cor(df.dropna[,c("posrecip", "negrecip", "altruism", "trust")])
 
@@ -90,7 +90,6 @@ get_eigenvalue(dat.pca)
 
 
 #without weighting, without neg reciprocity
-df.dropna <- df %>% drop_na(c("posrecip", "altruism", "trust"))
 
 cor(df.dropna[,c("posrecip", "altruism", "trust")])
 
@@ -112,9 +111,57 @@ get_eigenvalue(dat.pca)
 dat.pca$rotation
 
 dat.var <- get_pca_var(dat.pca)
-dat.var$coord          # Coordinates
 dat.var$contrib        # Contributions to the PCs
-dat.var$cos2           # Quality of representation 
+
+# Create new prosociality composite based on these weightings
+df$prosocial <- (dat.var$contrib[1]*df$posrecip + 
+                     dat.var$contrib[2]*df$altruism + 
+                     dat.var$contrib[3]*df$trust)
+
+
+# Exploratory Factor analysis
+
+# Determine Number of Factors to Extract with Neg Recip
+library(nFactors)
+
+ev <- eigen(cor(df.dropna)) # get eigenvalues
+
+ap <- parallel(subject=nrow(df.dropna),var=ncol(df.dropna),
+  rep=100,cent=.05)
+
+nS <- nScree(x=ev$values, aparallel=ap$eigen$qevpea)
+
+plotnScree(nS)
+
+
+# Determine Number of Factors to Extract WITHOUT Neg Recip
+library(nFactors)
+
+ev <- eigen(cor(df.dropna[,c("posrecip", "altruism", "trust")])) # get eigenvalues
+
+ap <- parallel(subject=nrow(df.dropna[,c("posrecip", "altruism", "trust")]),var=ncol(df.dropna[,c("posrecip", "altruism", "trust")]),
+  rep=100,cent=.05)
+
+nS <- nScree(x=ev$values, aparallel=ap$eigen$qevpea)
+
+plotnScree(nS)
+
+
+
+# Maximum Likelihood Factor Analysis
+# entering raw data and extracting 1 factor for 4 variables
+# with varimax rotation
+fit <- factanal(df.dropna, 1, rotation="varimax")
+print(fit, digits=2, cutoff=.3, sort=TRUE)
+
+# entering raw data and extracting 1 factor for 3 variables (WITHOUT Neg Recip)
+# with varimax rotation
+fit <- factanal(df.dropna[,c("posrecip", "altruism", "trust")], 1, rotation="varimax")
+print(fit, digits=2, cutoff=.3, sort=TRUE)
+
+
+
+
 
 
 ```
