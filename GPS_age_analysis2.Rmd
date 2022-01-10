@@ -68,9 +68,6 @@ var.labs <- c("Positive reciprocity", "Negative reciprocity", "Altruism", "Trust
 #add continent names to df
 df$continent <- countrycode(df$country, 'country.name', 'region')
 
-#create weighted prosociliaty measure
-df$prosocial_wgt <- df$prosocial * df$wgt
-
 
 
 ```
@@ -120,52 +117,67 @@ get_eigenvalue(dat.pca)
 dat.pca$rotation
 
 dat.var <- get_pca_var(dat.pca)
-dat.var$contrib        # Contributions to the PCs
-
-# Create new prosociality composite based on these weightings
-df$prosocial <- scale(dat.var$contrib[1]*df$posrecip + 
-                     dat.var$contrib[2]*df$altruism + 
-                     dat.var$contrib[3]*df$trust)
-
-
-# Exploratory Factor analysis
-
-# Determine Number of Factors to Extract with Neg Recip
-
-ev <- eigen(cor(df.dropna)) # get eigenvalues
-
-ap <- parallel(subject=nrow(df.dropna),var=ncol(df.dropna),
-  rep=100,cent=.05)
-
-nS <- nScree(x=ev$values, aparallel=ap$eigen$qevpea)
-
-plotnScree(nS)
-
-
-# Determine Number of Factors to Extract WITHOUT Neg Recip
-library(nFactors)
-
-ev <- eigen(cor(df.dropna[,c("posrecip", "altruism", "trust")])) # get eigenvalues
-
-ap <- parallel(subject=nrow(df.dropna[,c("posrecip", "altruism", "trust")]),var=ncol(df.dropna[,c("posrecip", "altruism", "trust")]),
-  rep=100,cent=.05)
-
-nS <- nScree(x=ev$values, aparallel=ap$eigen$qevpea)
-
-plotnScree(nS)
+dat.var$contrib        # Contributions to the Principal Component
 
 
 
-# Maximum Likelihood Factor Analysis
-# entering raw data and extracting 1 factor for 4 variables
-# with varimax rotation
-fit <- factanal(df.dropna, 1, rotation="varimax")
-print(fit, digits=2, cutoff=.3, sort=TRUE)
+# Create new prosociality composite based on CONTRIBUTION weighting
+df$prosocial_contrib <- scale(dat.var$contrib["posrecip",1]*df$posrecip + 
+                     dat.var$contrib["altruism",1]*df$altruism + 
+                     dat.var$contrib["trust",1]*df$trust)
 
-# entering raw data and extracting 1 factor for 3 variables (WITHOUT Neg Recip)
-# with varimax rotation
-fit <- factanal(df.dropna[,c("posrecip", "altruism", "trust")], 1, rotation="varimax")
-print(fit, digits=2, cutoff=.3, sort=TRUE)
+#create weighted prosociliaty measure
+df$prosocial_wgt <- df$prosocial * df$wgt
+
+# Create new prosociality composite based on COMPONENT LOADING weighting
+df$prosocial_load <- scale(dat.pca$rotation["posrecip",1]*df$posrecip + 
+                     dat.pca$rotation["altruism",1]*df$altruism + 
+                     dat.pca$rotation["trust",1]*df$trust) * -1
+
+#create weighted prosociliaty measures
+df$prosocial_wgt_c <- df$prosocial_contrib * df$wgt
+df$prosocial_wgt_l <- df$prosocial_load * df$wgt
+
+
+
+# # Exploratory Factor analysis
+# 
+# # Determine Number of Factors to Extract with Neg Recip
+# 
+# ev <- eigen(cor(df.dropna)) # get eigenvalues
+# 
+# ap <- parallel(subject=nrow(df.dropna),var=ncol(df.dropna),
+#   rep=100,cent=.05)
+# 
+# nS <- nScree(x=ev$values, aparallel=ap$eigen$qevpea)
+# 
+# plotnScree(nS)
+# 
+
+# # Determine Number of Factors to Extract WITHOUT Neg Recip
+# library(nFactors)
+# 
+# ev <- eigen(cor(df.dropna[,c("posrecip", "altruism", "trust")])) # get eigenvalues
+# 
+# ap <- parallel(subject=nrow(df.dropna[,c("posrecip", "altruism", "trust")]),var=ncol(df.dropna[,c("posrecip", "altruism", "trust")]),
+#   rep=100,cent=.05)
+# 
+# nS <- nScree(x=ev$values, aparallel=ap$eigen$qevpea)
+# 
+# plotnScree(nS)
+# 
+# 
+# 
+# # Maximum Likelihood Factor Analysis
+# # entering raw data and extracting 1 factor for 4 variables
+# # with varimax rotation
+# fit <- factanal(df.dropna, 1, rotation="varimax")
+# print(fit, digits=2, cutoff=.3, sort=TRUE)
+# 
+# # entering raw data and extracting 1 factor for 3 variables (WITHOUT Neg Recip)
+# # with varimax rotation
+# fit <- factanal(df.dropna[,c("posrecip", "altruism", "trust")], 1, rotation="varimax")
+# print(fit, digits=2, cutoff=.3, sort=TRUE)
 
 
 
@@ -341,7 +353,16 @@ df %>% group_by(continent) %>% ggplot(aes(age.r, prosocial)) + geom_point()
 ```{r fig.align="center", fig.width=10, fig.height=8}
 
 #plot age vs prosociality
-df %>% group_by(age.r, continent) %>% filter(age.r <= 70) %>% summarise(across(prosocial, mean, na.rm= TRUE)) %>%  ggplot(aes(age.r, prosocial)) + geom_ma(aes(color = continent, group = continent), ma_fun = SMA, n=5, linetype = "solid", size = 1.5) + theme_bw()
+#Moving average smoothing
+df %>% group_by(age.r, continent) %>% filter(age.r <= 70) %>% summarise(across(prosocial_contrib, mean, na.rm= TRUE)) %>%  ggplot(aes(age.r, prosocial_contrib)) + geom_ma(aes(color = continent, group = continent), ma_fun = SMA, n=5, linetype = "solid", size = 1.5) + theme_bw()
+
+#Loess smoothing
+plot.contrib <- df %>% group_by(age.r, continent) %>% filter(age.r <= 70) %>% summarise(across(prosocial_contrib, mean, na.rm= TRUE)) %>%  ggplot(aes(age.r, prosocial_contrib)) + geom_smooth(aes(color = continent, group = continent, fill = continent), linetype = "solid", size = 1.5) + theme_bw()
+
+#Plot Prosociality using COMPONENT LOADING from PCA rather than percentage CONTRIBUTION
+plot.load <- df %>% group_by(age.r, continent) %>% filter(age.r <= 70) %>% summarise(across(prosocial_load, mean, na.rm= TRUE)) %>%  ggplot(aes(age.r, prosocial_load)) + geom_smooth(aes(color = continent, group = continent, fill = continent), linetype = "solid", size = 1.5) + theme_bw()
+
+plot_grid(plot.contrib, plot.load)
 
 #plot age vs prosociality WEIGHTED
 df %>% group_by(age.r, continent) %>% filter(age.r <= 70) %>% summarise(across(prosocial_wgt, mean, na.rm= TRUE)) %>%  ggplot(aes(age.r, prosocial_wgt)) + geom_ma(aes(color = continent, group = continent), ma_fun = SMA, n=5, linetype = "solid", size = 1.5) + theme_bw()
