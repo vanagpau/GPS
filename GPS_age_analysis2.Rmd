@@ -62,7 +62,7 @@ dotcols <- c("#A363D9")
 pos.corr.col <- "#CA4640" 
 neg.corr.col <-  "#00A7DD"
 
-vars <- c("posrecip", "negrecip", "altruism", "trust", "prosocial")
+vars <- c("posrecip", "negrecip", "altruism", "trust", "prosocial_contrib")
 var.labs <- c("Positive reciprocity", "Negative reciprocity", "Altruism", "Trust", "Prosociality")
 
 #add continent names to df
@@ -125,9 +125,6 @@ dat.var$contrib        # Contributions to the Principal Component
 df$prosocial_contrib <- scale(dat.var$contrib["posrecip",1]*df$posrecip + 
                      dat.var$contrib["altruism",1]*df$altruism + 
                      dat.var$contrib["trust",1]*df$trust)
-
-#create weighted prosociliaty measure
-df$prosocial_wgt <- df$prosocial * df$wgt
 
 # Create new prosociality composite based on COMPONENT LOADING weighting
 df$prosocial_load <- scale(dat.pca$rotation["posrecip",1]*df$posrecip + 
@@ -272,7 +269,7 @@ cntry.list <- df %>%
 cntry.list <- unique(cntry.list)
 
 # create a dataframe with the country information and columns of NA to fill in below
-countrycols <- c("code", "region", "posrecip", "negrecip", "altruism", "trust", "prosocial", "n")
+countrycols <- c("code", "region", "posrecip", "negrecip", "altruism", "trust", "prosocial_contrib", "n")
 # country.results <- data.frame(cntry.list$ISO3, cntry.list$Map.Name, matrix(data = NA, nrow = nrow(cntry.list), ncol = (length(countrycols) - 2)))
 country.results <- data.frame(cntry.list$isocode, cntry.list$country, matrix(data = NA, nrow = length(cntry.list), ncol = (length(countrycols) - 2)))
 names(country.results) <- countrycols
@@ -284,14 +281,14 @@ for (c in country.results$code) {
   cdf <- subset(df, isocode == c) # select rows from that country
   
   # standardise variables
-  cdf[,c("age", "posrecip", "negrecip", "altruism", "trust", "prosocial")] <- scale(cdf[,c("age", "posrecip", "negrecip", "altruism", "trust", "prosocial")])
+  cdf[,c("age", "posrecip", "negrecip", "altruism", "trust", "prosocial_contrib")] <- scale(cdf[,c("age", "posrecip", "negrecip", "altruism", "trust", "prosocial_contrib")])
   
   # run linear model for each outcome & extract parameters
   cntry.p <- model_parameters(lm(posrecip ~ gender + age, data = cdf), standardize = "refit")
   cntry.n <- model_parameters(lm(negrecip ~ gender + age, data = cdf), standardize = "refit")
   cntry.a <- model_parameters(lm(altruism ~ gender + age, data = cdf), standardize = "refit")
   cntry.t <- model_parameters(lm(trust ~ gender + age, data = cdf), standardize = "refit")
-  cntry.pr <- model_parameters(lm(prosocial ~ gender + age, data = cdf), standardize = "refit")
+  cntry.pr <- model_parameters(lm(prosocial_contrib ~ gender + age, data = cdf), standardize = "refit")
   country.results[country.results$code == c, 3:7] = c(tail(cntry.p$Coefficient,1),
                                                       tail(cntry.n$Coefficient,1), 
                                                       tail(cntry.a$Coefficient,1),
@@ -347,7 +344,7 @@ df.world <- left_join(world_map %>% select(-region), country.results, by = "code
 ```
 
 
-df %>% group_by(continent) %>% ggplot(aes(age.r, prosocial)) + geom_point()
+df %>% group_by(continent) %>% ggplot(aes(age.r, prosocial_contrib)) + geom_point()
 
 # Create plots
 ```{r fig.align="center", fig.width=10, fig.height=8}
@@ -365,7 +362,7 @@ plot.load <- df %>% group_by(age.r, continent) %>% filter(age.r <= 70) %>% summa
 plot_grid(plot.contrib, plot.load)
 
 #plot age vs prosociality WEIGHTED
-df %>% group_by(age.r, continent) %>% filter(age.r <= 70) %>% summarise(across(prosocial_wgt, mean, na.rm= TRUE)) %>%  ggplot(aes(age.r, prosocial_wgt)) + geom_ma(aes(color = continent, group = continent), ma_fun = SMA, n=5, linetype = "solid", size = 1.5) + theme_bw()
+df %>% group_by(age.r, continent) %>% filter(age.r <= 70) %>% summarise(across(prosocial_wgt_c, mean, na.rm= TRUE)) %>%  ggplot(aes(age.r, prosocial_wgt_c)) + geom_ma(aes(color = continent, group = continent), ma_fun = SMA, n=5, linetype = "solid", size = 1.5) + theme_bw()
 
 # create a map figure for each outcome (distancing, negrecip giving, and internegrecip giving)
 
@@ -419,7 +416,7 @@ world.trust <- ggplot(df.world, aes(long, lat, group = group)) +
 
 
 world.prosocial <- ggplot(df.world, aes(long, lat, group = group)) +
-  geom_polygon(aes(fill = prosocial), color = "white", size = .1) +
+  geom_polygon(aes(fill = prosocial_contrib), color = "white", size = .1) +
     scale_fill_gradient2(low = neg.corr.col, mid = "white", high = pos.corr.col, midpoint = 0, na.value = "#ECECEC", name = expression(beta)) +
   theme_void() +
   draw_plot_label("Prosociality", x = -180, y = -35, hjust = 0, vjust = 0, angle = 90, size = axtitle, fontface = "plain")
