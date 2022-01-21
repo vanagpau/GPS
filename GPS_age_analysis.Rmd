@@ -68,6 +68,15 @@ var.labs <- c("Positive reciprocity", "Negative reciprocity", "Altruism", "Trust
 #add continent names to df
 df$continent <- countrycode(df$country, 'country.name', 'region')
 
+#Add gni data
+gni <- readxl::read_xlsx("GNI.xlsx") %>%
+rename("isocode" = "Country Code") %>%
+rename("gni" = "2018GNI") %>%
+mutate(gni = scale(gni)) %>%
+mutate(IncomeGroup = factor(IncomeGroup, levels = c("Low income", "Lower middle income", "Upper middle income", "High income"), ordered = T))
+
+df <- left_join(df, gni, by = "isocode")
+
 # OECD allocation (from Gender file)
 world.bank <- read.csv("Data_Extract_From_World_Development_Indicators/5f01a212-b834-4098-aa44-7c7bdc81428f_Data.csv", na.strings = "..", fileEncoding = 'UTF-8-BOM') %>% # NB. fileEncoding prevents i.. on 1st column name
   rename("isocode" = "Country.Code")
@@ -127,7 +136,7 @@ df$age.adj.z <- scale(df$age.adj)
 ```
 
 ## PCA
-```{r}
+```{r eval = FALSE}
 
 #without weighting, with neg reciprocity
 df.dropna <- df %>% drop_na(c("posrecip", "negrecip", "altruism", "trust")) %>% select(posrecip, negrecip, altruism, trust)
@@ -294,6 +303,8 @@ for (v in 1:length(vars)) {
   df.mod2$age[df.mod2$age.r > 70] <- NA
   
   df.mod2 <- df.mod2 %>% drop_na(age.r)
+  
+  
   df.mod2$subj_math_skills <- scale(df.mod2$subj_math_skills)
    
   # these are the models from GENDER file
@@ -307,6 +318,10 @@ for (v in 1:length(vars)) {
     model.age <- lmer(outcome ~ gender +  subj_math_skills + poly(age,2) + (1 | country) + (0 + subj_math_skills | country) + (0 + age | country), data = df.mod2, control = lmerControl(optimizer="bobyqa", optCtrl=list(maxfun=2e5)))
 
   results.age <- model_parameters(model.age, df_method = "satterthwaite", standardize = "refit")
+  
+  # create dataframe of model predictions for graphing (quicker than repeating model fit in ggplot)
+  
+  df.mod2 %>% mutate(model.out = predict(model.age, allow.new.level=TRUE))
 
   # table.age <- kable(results.age) %>% kable_styling()
   # print(table.age)
