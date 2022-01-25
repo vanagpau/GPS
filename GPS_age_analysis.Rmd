@@ -265,7 +265,8 @@ df$prosocial_wgt_l <- df$prosocial_load * df$wgt
     scale_fill_manual(values=c("#69b3a2", "#404080")) +
     theme_ipsum() +
     labs(fill="") 
-
+  
+  
 #plot by region
 ggplot(df, aes(x = `age.r`, y = `Region`, fill = ..x..)) +
   geom_density_ridges_gradient(scale = 2, rel_min_height = 0.01) +
@@ -277,6 +278,28 @@ ggplot(df, aes(x = `age.r`, y = `Region`, fill = ..x..)) +
       panel.spacing = unit(0.2, "lines"),
       strip.text.x = element_text(size = 1)
     )
+
+#plot by country
+# convert Country to factor
+df$country <- as.factor(df$country)
+
+#plot
+ggplot(df, aes(x = `age.r`, y = fct_reorder(.f = df$country, .x = df$`le.total.(years)`, .fun = median, .desc = FALSE), fill = ..x..)) +
+  geom_density_ridges_gradient(scale = 2, rel_min_height = 0.01) +
+  scale_fill_viridis(name = "Age", option = "C") +
+    scale_x_continuous(minor_breaks = seq(0, 110, 5), breaks = seq(0, 100, 10))
+
+# percentage over 70
+
+sum(na.omit(df$age.r) > 70) / length(na.omit(df$age.r))
+df %>% group_by(country) %>%
+  mutate(mean = mean(age.r, na.rm = TRUE), over_70 = 100*sum(!is.na(age.r[age.r > 70]))/length(!is.na(age.r))) %>% distinct(country, mean, over_70) %>%  ggplot( aes(x=fct_reorder(country, desc(over_70)), y=over_70)) +
+    geom_bar(stat="identity", fill="#f68060", alpha=.6, width=.4) +
+    coord_flip() +
+    xlab("") +
+    theme_bw()
+
+
 
 
 ```
