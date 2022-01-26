@@ -68,8 +68,8 @@ dotcols <- c("#A363D9")
 pos.corr.col <- "#CA4640" 
 neg.corr.col <-  "#00A7DD"
 
-vars <- c("posrecip", "negrecip", "altruism", "trust", "prosocial_contrib")
-var.labs <- c("Positive reciprocity", "Negative reciprocity", "Altruism", "Trust", "Prosociality")
+vars <- c("prosocial_contrib", "posrecip", "negrecip", "altruism", "trust")
+var.labs <- c("Prosociality", "Positive reciprocity", "Negative reciprocity", "Altruism", "Trust")
 
 #add continent names to df
 df$continent <- countrycode(df$country, 'country.name', 'region')
@@ -368,6 +368,27 @@ print(plot_grid(plot.age1, plot.age2, plot.age3, plot.age4, nrow = 1) +
 }
 
 
+# Quantify error bands
+
+m1 <- lm(outcome ~ poly(age.r,2), data = df.mod)
+ci <- data.frame(age = 15:99, predict(m1, data.frame(age.r = 15:99), interval = 'confidence'))
+ci %>% ggplot(aes( x= age)) + geom_point(aes(y = upr)) + geom_point(aes(y=lwr))
+ci %>% ggplot(aes( x= age)) + geom_point(aes (y = (upr-fit) ) ) + geom_point(aes (y = (lwr-fit) )) + geom_vline(xintercept = 83)
+
+#Confidence interval at age 83
+ci[69,"upr"]-ci[69,"lwr"]
+
+#Geographical make up of different samples
+
+total_obs <- sum(df %>% group_by(country) %>% count() %>% pull(n))
+df %>% group_by(country) %>% count() %>% mutate(prop = 100 * n / total_obs)
+
+total_obs <- sum(df.mod %>% group_by(country) %>% count() %>% pull(n))
+df.mod %>% group_by(country) %>% count() %>% mutate(prop = 100 * n / total_obs)
+
+total_obs <- sum(df %>% group_by(country) %>% count() %>% pull(n))
+df %>% group_by(country) %>% count() %>% mutate(prop = 100 * n / total_obs)
+
 
 ```
 
@@ -457,13 +478,13 @@ print(results.lin)
     plot.age <- ggplot(df.mod, aes(x = age.r, y = outcome)) + 
     # geom_point(color = dotcols[1], shape = 21, fill = NA, alpha = 0.01, size = 1, show.legend = FALSE) +
       
-    geom_smooth(color = dotcols[1], fill = dotcols[1], linetype = "solid", method = "lm", formula = y ~ poly(x,2), alpha = 0.3, size = 0.75, show.legend = FALSE) + #quadratic age up to 83
+    geom_smooth(color = dotcols[1], fill = dotcols[1], linetype = "solid", method = "lm", formula = y ~ poly(x,2), alpha = 0.3, size = 0.75, show.legend = FALSE) + #quadratic all ages
       
-    geom_smooth(color = dotcols[1], linetype = "solid", method = "lm", formula = y ~ x, alpha = 0.3, size = 0.6, show.legend = FALSE, se = FALSE) + #linear age to 83
+    geom_smooth(color = dotcols[1], linetype = "solid", method = "lm", formula = y ~ x, alpha = 0.3, size = 0.6, show.legend = FALSE, se = FALSE) + #linear all ages
       
-    geom_smooth(data = df.mod_83, color = 'black', fill = 'black', linetype = "dotted", method = "lm", formula = y ~ poly(x,2), alpha = 0.3, size = 0.75, show.legend = FALSE) + # quadratic to 70
+    geom_smooth(data = df.mod_83, color = 'black', fill = 'black', linetype = "dotted", method = "lm", formula = y ~ poly(x,2), alpha = 0.3, size = 0.75, show.legend = FALSE) + # quadratic to 83
       
-    geom_smooth(data = df.mod_83, color = 'black', linetype = "dashed", method = "lm", formula = y ~ x, alpha = 0.3, size = 0.6, show.legend = FALSE, se = FALSE) +  #linear to 70
+    geom_smooth(data = df.mod_83, color = 'black', linetype = "dashed", method = "lm", formula = y ~ x, alpha = 0.3, size = 0.6, show.legend = FALSE, se = FALSE) +  #linear to 83
       
       geom_smooth(color = "blue", se = FALSE, size = 0.6) + # smoothed
       
@@ -546,13 +567,13 @@ print(results.lin)
     plot.age <- ggplot(df.mod, aes(x = age.r, y = outcome)) + 
     # geom_point(color = dotcols[1], shape = 21, fill = NA, alpha = 0.01, size = 1, show.legend = FALSE) +
       
-    geom_smooth(color = dotcols[1], fill = dotcols[1], linetype = "solid", method = "lm", formula = y ~ poly(x,2), alpha = 0.3, size = 0.75, show.legend = FALSE) + #quadratic age up to 83
+    geom_smooth(color = dotcols[1], fill = dotcols[1], linetype = "solid", method = "lm", formula = y ~ poly(x,2), alpha = 0.3, size = 0.75, show.legend = FALSE) + #quadratic all ages
       
-    geom_smooth(color = dotcols[1], linetype = "solid", method = "lm", formula = y ~ x, alpha = 0.3, size = 0.6, show.legend = FALSE, se = FALSE) + #linear age to 83
+    geom_smooth(color = dotcols[1], linetype = "solid", method = "lm", formula = y ~ x, alpha = 0.3, size = 0.6, show.legend = FALSE, se = FALSE) + #linear all ages
       
-    geom_smooth(data = df.mod_new, color = 'black', fill = 'black', linetype = "dotted", method = "lm", formula = y ~ poly(x,2), alpha = 0.3, size = 0.75, show.legend = FALSE) + # quadratic to 70
+    geom_smooth(data = df.mod_new, color = 'black', fill = 'black', linetype = "dotted", method = "lm", formula = y ~ poly(x,2), alpha = 0.3, size = 0.75, show.legend = FALSE) + # quadratic to 73
       
-    geom_smooth(data = df.mod_new, color = 'black', linetype = "dashed", method = "lm", formula = y ~ x, alpha = 0.3, size = 0.6, show.legend = FALSE, se = FALSE) +  #linear to 70
+    geom_smooth(data = df.mod_new, color = 'black', linetype = "dashed", method = "lm", formula = y ~ x, alpha = 0.3, size = 0.6, show.legend = FALSE, se = FALSE) +  #linear to 73
       
       geom_smooth(color = "blue", se = FALSE, size = 0.6) + # smoothed
       
