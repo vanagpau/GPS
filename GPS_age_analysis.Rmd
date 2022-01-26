@@ -138,6 +138,12 @@ df$oecd <- factor(df$oecd, levels = c(1,0), labels = c("oecd", "not oecd"))
 
 df$age.adj.z <- scale(df$age.adj)
 
+# Create age quartiles
+df$age.quart <- gtools::quantcut(df$age.r, q = 4, na.rm = TRUE)
+levels(df$age.quart) <- c("Young Adult", "Adult", "Middle Age", "Older")
+age.vars <- c("Young Adult", "Adult", "Middle Age", "Older")
+
+
 
 ```
 
@@ -257,7 +263,9 @@ df$prosocial_wgt_l <- df$prosocial_load * df$wgt
 
 # Plot basic age ranges
 
-  ggplot(df, aes(age.r)) + geom_histogram() 
+  ggplot(df, aes(age.r)) + geom_histogram() + stat_ecdf(aes(y=..y..*6000)) + 
+  scale_y_continuous(sec.axis=sec_axis(trans = ~./6000 , name="percentage", labels=percent)) +
+    scale_x_continuous(minor_breaks = seq(0, 110, 5), breaks = seq(0, 100, 10)) + geom_vline(xintercept = 73)
 
 # plot by gender
   ggplot(df, aes(age.r, fill = gender)) +
@@ -291,7 +299,8 @@ ggplot(df, aes(x = `age.r`, y = fct_reorder(.f = df$country, .x = df$`le.total.(
 
 # percentage over 70
 
-sum(na.omit(df$age.r) > 70) / length(na.omit(df$age.r))
+sum(na.omit(df$age.r) > 73) / length(na.omit(df$age.r))
+
 df %>% group_by(country) %>%
   mutate(mean = mean(age.r, na.rm = TRUE), over_70 = 100*sum(!is.na(age.r[age.r > 70]))/length(!is.na(age.r))) %>% distinct(country, mean, over_70) %>%  ggplot( aes(x=fct_reorder(country, desc(over_70)), y=over_70)) +
     geom_bar(stat="identity", fill="#f68060", alpha=.6, width=.4) +
@@ -299,6 +308,64 @@ df %>% group_by(country) %>%
     xlab("") +
     theme_bw()
 
+
+#Main results loop split by AGE QUARTILES
+for (v in 1:length(vars)) {
+#for (v in 1:1) {
+  
+  var <- vars[v]
+  var.lab <- var.labs[v]
+  
+  # create dataframe for modelling/plotting cycling through outcome variables one by one
+  df.mod <- df %>% 
+    dplyr::rename("outcome" = paste(var)) %>% 
+    drop_na(c("outcome","age"))
+  
+  # Note: For SPEED of plotting cut out the model if required
+  
+# model.quad <- lmer(outcome ~ gender +  subj_math_skills + gni + poly(age,2) + (1 | country) + (0 + subj_math_skills | country) + (0 + age | country), data = df.mod, control = lmerControl(optimizer="bobyqa", optCtrl=list(maxfun=2e5)))
+# 
+# results.quad <- model_parameters(model.quad, ci_method = "satterthwaite", standardize = "refit")
+# 
+# print(paste(var.lab, " QUADRATIC MODEL RESULTS"))
+# 
+# print(results.quad)
+# 
+# model.lin <- lmer(outcome ~ gender +  subj_math_skills + gni + age + (1 | country) + (0 + subj_math_skills | country) + (0 + age | country), data = df.mod, control = lmerControl(optimizer="bobyqa", optCtrl=list(maxfun=2e5)))
+# 
+# results.lin <- model_parameters(model.lin, ci_method = "satterthwaite", standardize = "refit")
+# 
+# print(paste(var.lab, " LINEAR MODEL RESULTS"))
+# 
+# print(results.lin)
+  
+
+
+  # Plot quadratic and linear fit
+  for (i in 1:4) {
+    
+    assign(paste0('plot.age',i), ggplot(df.mod[df.mod$age.quart == age.vars[i], ], aes(x = age.r, y = outcome)) + 
+    # geom_point(color = dotcols[1], shape = 21, fill = NA, alpha = 0.01, size = 1, show.legend = FALSE) +
+      
+    geom_smooth(color = dotcols[1], fill = dotcols[1], linetype = "solid", method = "lm", formula = y ~ poly(x,2), alpha = 0.3, size = 0.75, show.legend = FALSE) +
+      
+    geom_smooth(color = "blue", se = FALSE, size = 0.6) + # smoothed
+    coord_cartesian(ylim=c(-0.5, 0.3)) +
+    scale_x_continuous(name = "Age", labels = label_number(accuracy = 1)) +
+    #scale_y_continuous(name = var.lab) + 
+    #theme_classic() + 
+    theme(axis.title.y=element_blank())) 
+  
+    
+  }
+  
+
+  cat("\n")
+  
+print(plot_grid(plot.age1, plot.age2, plot.age3, plot.age4, nrow = 1) + 
+        draw_figure_label(label = var.lab, size = 15))
+
+}
 
 
 
@@ -367,7 +434,7 @@ for (v in 1:length(vars)) {
   
   df.mod_83$subj_math_skills <- scale(df.mod_83$subj_math_skills)
    
-  # For SPEED of plotting cut out the model if required
+  # Note: For SPEED of plotting cut out the model if required
   
 model.quad <- lmer(outcome ~ gender +  subj_math_skills + gni + poly(age,2) + (1 | country) + (0 + subj_math_skills | country) + (0 + age | country), data = df.mod_83, control = lmerControl(optimizer="bobyqa", optCtrl=list(maxfun=2e5)))
 
@@ -431,6 +498,96 @@ print(results.lin)
   
   cat("\n")
 }
+```
+
+
+# Repeat process at different age cutoff
+```{r}
+for (v in 1:length(vars)) {
+# for (v in 1:1) {
+  
+  var <- vars[v]
+  var.lab <- var.labs[v]
+  
+  # create dataframe for modelling/plotting cycling through outcome variables one by one
+  df.mod <- df %>% 
+    dplyr::rename("outcome" = paste(var)) %>% 
+    drop_na(c("outcome","age"))
+  
+  # create second dataframe cutting our all people over 73 years (95th percentile)
+  df.mod_new <- df.mod
+  df.mod_new$age.r[df.mod_new$age.r > 73] <- NA
+  df.mod_new$age[df.mod_new$age.r > 73] <- NA
+  
+  df.mod_new <- df.mod_new %>% drop_na(age.r)
+  
+  df.mod_new$subj_math_skills <- scale(df.mod_new$subj_math_skills)
+   
+  # For SPEED of plotting cut out the model if required
+  
+model.quad <- lmer(outcome ~ gender +  subj_math_skills + gni + poly(age,2) + (1 | country) + (0 + subj_math_skills | country) + (0 + age | country), data = df.mod_new, control = lmerControl(optimizer="bobyqa", optCtrl=list(maxfun=2e5)))
+
+results.quad <- model_parameters(model.quad, ci_method = "satterthwaite", standardize = "refit")
+
+print(paste(var.lab, " QUADRATIC MODEL RESULTS"))
+
+print(results.quad)
+
+model.lin <- lmer(outcome ~ gender +  subj_math_skills + gni + age + (1 | country) + (0 + subj_math_skills | country) + (0 + age | country), data = df.mod_new, control = lmerControl(optimizer="bobyqa", optCtrl=list(maxfun=2e5)))
+
+results.lin <- model_parameters(model.lin, ci_method = "satterthwaite", standardize = "refit")
+
+print(paste(var.lab, " LINEAR MODEL RESULTS"))
+
+print(results.lin)
+  
+
+  # Plot quadratic and linear fit
+    plot.age <- ggplot(df.mod, aes(x = age.r, y = outcome)) + 
+    # geom_point(color = dotcols[1], shape = 21, fill = NA, alpha = 0.01, size = 1, show.legend = FALSE) +
+      
+    geom_smooth(color = dotcols[1], fill = dotcols[1], linetype = "solid", method = "lm", formula = y ~ poly(x,2), alpha = 0.3, size = 0.75, show.legend = FALSE) + #quadratic age up to 83
+      
+    geom_smooth(color = dotcols[1], linetype = "solid", method = "lm", formula = y ~ x, alpha = 0.3, size = 0.6, show.legend = FALSE, se = FALSE) + #linear age to 83
+      
+    geom_smooth(data = df.mod_new, color = 'black', fill = 'black', linetype = "dotted", method = "lm", formula = y ~ poly(x,2), alpha = 0.3, size = 0.75, show.legend = FALSE) + # quadratic to 70
+      
+    geom_smooth(data = df.mod_new, color = 'black', linetype = "dashed", method = "lm", formula = y ~ x, alpha = 0.3, size = 0.6, show.legend = FALSE, se = FALSE) +  #linear to 70
+      
+      geom_smooth(color = "blue", se = FALSE, size = 0.6) + # smoothed
+      
+    scale_x_continuous(name = "Age") +
+    scale_y_continuous(name = var.lab) + 
+    theme_classic() + 
+    theme(axis.text = element_markdown(size = axtext),
+          axis.title.x = element_markdown(size = axtitle),
+          axis.title.y = element_markdown(size = axtitle))
+  
+  print(plot.age)
+  
+  plot.age.continent <- plot.age + facet_wrap("continent")
+  
+  print(plot.age.continent)
+  
+  plot.age.gender <- plot.age +
+    facet_grid(cols = vars(gender))
+  
+  print(plot.age.gender)
+  
+  plot.age.oecd <- plot.age +
+    facet_grid(cols = vars(oecd))
+  
+  print(plot.age.oecd)
+  
+  plot.age.gdp <- plot.age +
+    facet_grid(cols = vars(gdp.quart))
+  
+  print(plot.age.gdp)
+  
+  
+  cat("\n")
+}
+
 
 ```
 
