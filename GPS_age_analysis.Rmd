@@ -381,13 +381,30 @@ ci[69,"upr"]-ci[69,"lwr"]
 #Geographical make up of different samples
 
 total_obs <- sum(df %>% group_by(country) %>% count() %>% pull(n))
-df %>% group_by(country) %>% count() %>% mutate(prop = 100 * n / total_obs)
+prop_all <- df %>% group_by(country) %>% count() %>% mutate(prop_all = 100 * n / total_obs) %>% select(-n)
 
-total_obs <- sum(df.mod %>% group_by(country) %>% count() %>% pull(n))
-df.mod %>% group_by(country) %>% count() %>% mutate(prop = 100 * n / total_obs)
+total_obs <- sum(df %>% group_by(country) %>% filter(age.r <= 73) %>% count() %>% pull(n))
+under_73 <- df %>% group_by(country) %>% filter(age.r <= 73) %>% count() %>% mutate(under_73 = 100 * n / total_obs) %>% select(-n)
 
-total_obs <- sum(df %>% group_by(country) %>% count() %>% pull(n))
-df %>% group_by(country) %>% count() %>% mutate(prop = 100 * n / total_obs)
+total_obs <- sum(df %>% group_by(country) %>% filter(age.r <= 83) %>% count() %>% pull(n))
+under_83 <- df %>% group_by(country) %>% filter(age.r <= 83) %>% count() %>% mutate(under_83 = 100 * n / total_obs) %>% select(-n)
+
+prop <- left_join(prop_all, under_73, by='country') %>%
+                left_join(., under_83, by='country') 
+
+prop <- pivot_longer(prop, c(prop_all, under_73, under_83))
+
+ggplot(prop, aes(fill=name, y=value, x=country)) +  geom_bar(position="dodge", stat="identity") + 
+         scale_fill_brewer(palette = "Blues") + theme_bw() + coord_flip() + ylab("Proportion of sample") + theme(legend.position = "bottom", legend.title = element_blank())
+
+
+# Look at proportion of sample make up between 73 and 83
+
+total_obs <- sum(df %>% group_by(country) %>% filter(age.r >= 73 & age.r <= 83) %>% count() %>% pull(n))
+slice <- df %>% group_by(country) %>% filter(age.r >= 73 & age.r <= 83) %>% count() %>% mutate(p = 100 * n / total_obs) %>% select(-n)
+
+ggplot (slice, aes(y=p, x=reorder(country, p))) +  geom_bar(stat="identity", fill="skyblue", alpha=0.7) + theme_bw() + coord_flip() + ylab("Proportion of sample") + theme(legend.position = "none")
+
 
 
 ```
