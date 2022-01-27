@@ -395,7 +395,8 @@ prop <- left_join(prop_all, under_73, by='country') %>%
 prop <- pivot_longer(prop, c(prop_all, under_73, under_83))
 
 ggplot(prop, aes(fill=name, y=value, x=country)) +  geom_bar(position="dodge", stat="identity") + 
-         scale_fill_brewer(palette = "Blues") + theme_bw() + coord_flip() + ylab("Proportion of sample") + theme(legend.position = "bottom", legend.title = element_blank())
+         scale_fill_brewer(palette = "Dark2") +
+  coord_flip() + ylab("Proportion of sample") + theme(legend.position = "bottom", legend.title = element_blank(), axis.text.y = element_text(size = 5))
 
 
 # Look at proportion of sample make up between 73 and 83
@@ -403,7 +404,7 @@ ggplot(prop, aes(fill=name, y=value, x=country)) +  geom_bar(position="dodge", s
 total_obs <- sum(df %>% group_by(country) %>% filter(age.r >= 73 & age.r <= 83) %>% count() %>% pull(n))
 slice <- df %>% group_by(country) %>% filter(age.r >= 73 & age.r <= 83) %>% count() %>% mutate(p = 100 * n / total_obs) %>% select(-n)
 
-ggplot (slice, aes(y=p, x=reorder(country, p))) +  geom_bar(stat="identity", fill="skyblue", alpha=0.7) + theme_bw() + coord_flip() + ylab("Proportion of sample") + theme(legend.position = "none")
+ggplot (slice, aes(y=p, x=reorder(country, p))) +  geom_bar(stat="identity", fill="skyblue", alpha=0.7) + theme_bw() + coord_flip() + ylab("Proportion of sample") + theme(legend.position = "none", axis.text.y = element_text(size = 5))
 
 
 
