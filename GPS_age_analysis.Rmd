@@ -540,7 +540,7 @@ print(results.lin)
 ```
 
 
-# Repeat process at different age cutoff
+# Repeat process at different age cutoff (73)
 ```{r}
 for (v in 1:length(vars)) {
 # for (v in 1:1) {
@@ -585,9 +585,9 @@ print(results.lin)
     plot.age <- ggplot(df.mod, aes(x = age.r, y = outcome)) + 
     # geom_point(color = dotcols[1], shape = 21, fill = NA, alpha = 0.01, size = 1, show.legend = FALSE) +
       
-    geom_smooth(color = dotcols[1], fill = dotcols[1], linetype = "solid", method = "lm", formula = y ~ poly(x,2), alpha = 0.3, size = 0.75, show.legend = FALSE) + #quadratic all ages
+#    geom_smooth(color = dotcols[1], fill = dotcols[1], linetype = "solid", method = "lm", formula = y ~ #poly(x,2), alpha = 0.3, size = 0.75, show.legend = FALSE) + #quadratic all ages
       
-    geom_smooth(color = dotcols[1], linetype = "solid", method = "lm", formula = y ~ x, alpha = 0.3, size = 0.6, show.legend = FALSE, se = FALSE) + #linear all ages
+#    geom_smooth(color = dotcols[1], linetype = "solid", method = "lm", formula = y ~ x, alpha = 0.3, size = #0.6, show.legend = FALSE, se = FALSE) + #linear all ages
       
     geom_smooth(data = df.mod_new, color = 'black', fill = 'black', linetype = "dotted", method = "lm", formula = y ~ poly(x,2), alpha = 0.3, size = 0.75, show.legend = FALSE) + # quadratic to 73
       
@@ -735,23 +735,25 @@ df.world$oecd <- factor(df.world$oecd, levels = c(0,1), labels = c("oecd", "not 
 ```
 
 
-# Create plots
+# Create world map plots
 ```{r fig.align="center", fig.width=10, fig.height=8}
+
+age_cutoff = 73
 
 #plot age vs prosociality
 #Moving average smoothing
-df %>% group_by(age.r, continent) %>% filter(age.r <= 70) %>% summarise(across(prosocial_contrib, mean, na.rm= TRUE)) %>%  ggplot(aes(age.r, prosocial_contrib)) + geom_ma(aes(color = continent, group = continent), ma_fun = SMA, n=5, linetype = "solid", size = 1.5) + theme_bw()
+df %>% group_by(age.r, continent) %>% filter(age.r <= age_cutoff) %>% summarise(across(prosocial_contrib, mean, na.rm= TRUE)) %>%  ggplot(aes(age.r, prosocial_contrib)) + geom_ma(aes(color = continent, group = continent), ma_fun = SMA, n=5, linetype = "solid", size = 1.5) + theme_bw()
 
 #Loess smoothing
-plot.contrib <- df %>% group_by(age.r, continent) %>% filter(age.r <= 70) %>% summarise(across(prosocial_contrib, mean, na.rm= TRUE)) %>%  ggplot(aes(age.r, prosocial_contrib)) + geom_smooth(aes(color = continent, group = continent, fill = continent), linetype = "solid", size = 1.5) + theme_bw()
+plot.contrib <- df %>% group_by(age.r, continent) %>% filter(age.r <= age_cutoff) %>% summarise(across(prosocial_contrib, mean, na.rm= TRUE)) %>%  ggplot(aes(age.r, prosocial_contrib)) + geom_smooth(aes(color = continent, group = continent, fill = continent), linetype = "solid", size = 1.5) + theme_bw()
 
 #Plot Prosociality using COMPONENT LOADING from PCA rather than percentage CONTRIBUTION
-plot.load <- df %>% group_by(age.r, continent) %>% filter(age.r <= 70) %>% summarise(across(prosocial_load, mean, na.rm= TRUE)) %>%  ggplot(aes(age.r, prosocial_load)) + geom_smooth(aes(color = continent, group = continent, fill = continent), linetype = "solid", size = 1.5) + theme_bw()
+plot.load <- df %>% group_by(age.r, continent) %>% filter(age.r <= age_cutoff) %>% summarise(across(prosocial_load, mean, na.rm= TRUE)) %>%  ggplot(aes(age.r, prosocial_load)) + geom_smooth(aes(color = continent, group = continent, fill = continent), linetype = "solid", size = 1.5) + theme_bw()
 
 plot_grid(plot.contrib, plot.load)
 
 #plot age vs prosociality WEIGHTED
-df %>% group_by(age.r, continent) %>% filter(age.r <= 70) %>% summarise(across(prosocial_wgt_c, mean, na.rm= TRUE)) %>%  ggplot(aes(age.r, prosocial_wgt_c)) + geom_ma(aes(color = continent, group = continent), ma_fun = SMA, n=5, linetype = "solid", size = 1.5) + theme_bw()
+df %>% group_by(age.r, continent) %>% filter(age.r <= age_cutoff) %>% summarise(across(prosocial_wgt_c, mean, na.rm= TRUE)) %>%  ggplot(aes(age.r, prosocial_wgt_c)) + geom_ma(aes(color = continent, group = continent), ma_fun = SMA, n=5, linetype = "solid", size = 1.5) + theme_bw()
 
 # create a map figure for each outcome (distancing, negrecip giving, and internegrecip giving)
 
