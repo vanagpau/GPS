@@ -354,7 +354,7 @@ for (v in 1:length(vars)) {
       
     scale_x_continuous(name = "Age") +
     scale_y_continuous(name = var.lab) + 
-      ylim(-0.3, 0.2) +
+      coord_cartesian(ylim = c(-0.3, 0.2)) +
     theme_classic() + 
     theme(axis.text = element_markdown(size = axtext),
           axis.title.x = element_markdown(size = axtitle),
