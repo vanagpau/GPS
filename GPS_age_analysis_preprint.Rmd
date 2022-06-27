@@ -1,0 +1,847 @@
+---
+title: "GPS_age"
+author: "Jo Cutler & Paul Vanags"
+date: "07/06/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+options(digits = 4)
+
+# load required packages and functions
+
+require(pacman)
+pacman::p_load(car,
+               cowplot,
+               countrycode,
+               effectsize,
+               factoextra,
+               ggridges,
+               ggtext,
+               GPArotation, 
+               haven,
+               Hmisc,
+               hrbrthemes,
+               irr,
+               kableExtra,
+               lavaan,
+               lemon,
+               lme4, 
+               lmerTest,
+               mediation,
+               nFactors,
+               parameters, 
+               psych,
+               scales,
+               see,
+               tidyquant,
+               tidyverse,
+               viridis
+)
+
+### Function to format p values taken from https://stackoverflow.com/questions/23018256/printing-p-values-with-0-001
+
+## version without = sign
+pvalr <- function(pvals, sig.limit = .001, digits = 3, html = FALSE) {
+  
+  roundr <- function(x, digits = 1) {
+    res <- sprintf(paste0('%.', digits, 'f'), x)
+    zzz <- paste0('0.', paste(rep('0', digits), collapse = ''))
+    res[res == paste0('-', zzz)] <- zzz
+    res
+  }
+  
+  sapply(pvals, function(x, sig.limit) {
+    if (x < sig.limit)
+      if (html)
+        return(sprintf('&lt; %s', format(sig.limit))) else
+          return(sprintf('<%s', format(sig.limit)))
+    if (x > .1)
+      return(roundr(x, digits = 2)) else
+        return(roundr(x, digits = digits))
+  }, sig.limit = sig.limit)
+}
+
+```
+
+## Data wrangle
+
+```{r data-prep, echo = FALSE, include=FALSE}
+
+df <- read_dta("data/Gallup_short.dta") 
+df <- df %>% 
+  subset(age < 74) 
+
+df <- df %>% 
+  mutate(gender = factor(gender,
+                         levels = c(0,1),
+                         labels = c("male", "female"))) %>% 
+  add_column(id = 1:nrow(df))
+
+contrasts(df$gender) <- contr.sum(length(levels(df$gender)))
+
+df$age.r <- df$age
+df$age <- scale(df$age)
+df$subj_math_skills <- scale(df$subj_math_skills)
+
+resolution <- 300
+plotW <- 4
+plotH <- 4
+
+axtext <- 16
+axtitle <- 20
+dotcols <- c("#A363D9")
+pos.corr.col <- "#CA4640" 
+neg.corr.col <-  "#00A7DD"
+
+prefs <- c("prosocial_contrib", "negrecip", "posrecip", "altruism", "trust")
+pref.labs <- c("Prosociality", "Negative reciprocity", "Positive reciprocity", "Altruism", "Trust")
+behavs <- c("WP108", "WP109", "WP110")
+behav.labs <- c("Donating money", "Volunteering", "Helping a stranger")
+
+#add continent names to df
+df$continent <- countrycode(df$country, 'country.name', 'region')
+
+#Add gni data
+gni <- readxl::read_xlsx("data/GNI.xlsx") %>%
+  rename("isocode" = "Country Code") %>%
+  rename("gni" = "2018GNI") %>%
+  mutate(gni = scale(gni)) %>%
+  mutate(IncomeGroup = factor(IncomeGroup, levels = c("Low income", "Lower middle income", "Upper middle income", "High income"), ordered = T))
+
+df <- left_join(df, gni, by = "isocode")
+
+# OECD allocation (from Gender file)
+world.bank <- read.csv("data/Data_Extract_From_World_Development_Indicators/5f01a212-b834-4098-aa44-7c7bdc81428f_Data.csv", na.strings = "..", fileEncoding = 'UTF-8-BOM') %>% # NB. fileEncoding prevents i.. on 1st column name
+  rename("isocode" = "Country.Code")
+
+gdp <- world.bank %>%
+  subset(Series.Code == "NY.GDP.PCAP.CD") %>% 
+  rename("gdp" = "X2012..YR2012.") 
+
+gdp <- semi_join(x = gdp, y = df, by = "isocode") %>%
+  mutate(gdp.quart = ntile(gdp, 4)) %>%
+  mutate(gdp = scale(gdp))
+
+le <- world.bank %>% 
+  subset(str_detect(Series.Name, "Life expectancy at birth")) %>% 
+  rename("life.exp" = "X2012..YR2012.") %>% 
+  pivot_wider(id_cols = c("Country.Name", "isocode"), names_from = "Series.Name", values_from = "life.exp")
+
+colnames(le) <- gsub("Life expectancy at birth, ", "le.", colnames(le))
+colnames(le) <- gsub(" ", ".", colnames(le))
+
+df <- left_join(df, gdp, by = "isocode")
+df <- left_join(df, le, by = "isocode")
+
+# OECD or not?
+oecd <- c("Austria", "Australia", "Belgium", "Canada", "Chile", "Colombia", "Costa Rica", "Czech Republic", "Denmark", "Estonia", "Finland", "France", "Germany", "Greece", "Hungary", "Iceland", "Ireland", "Israel", "Italy", "Japan", "Korea", "Latvia", "Lithuania", "Luxembourg", "Mexico", "the Netherlands", "New Zealand", "Norway", "Poland", "Portugal", "Slovak Republic", "Slovenia", "Spain", "Sweden", "Switzerland", "Turkey", "the United Kingdom", "United States") # from https://www.oecd.org/newsroom/oecd-welcomes-costa-rica-as-its-38th-member.htm
+
+oecd.code <- countrycode(oecd, 'country.name', 'iso3c')
+
+# add adjusted age and OECD index to main dataframe
+
+# df$age.adj <- NA
+# df$oecd <- NA
+# 
+# for (r in 1:nrow(df)) {
+#   if (is.na(df$isocode[r])) {
+#     df$oecd[r] <- 0
+#   } else {
+#     if (sum(str_detect(oecd.code, df$isocode[r])) == 0) {
+#       df$oecd[r] <- 0
+#     } else if (sum(str_detect(oecd.code, df$isocode[r])) == 1) {
+#       df$oecd[r] <- 1
+#     } else {stop('not found 1 or 0 matches')}
+#   }
+#   
+#   if(df$gender[r] == "male") {
+#     df$age.adj[r] <- df$age.r[r] / df$`le.male.(years)`[r]
+#   } else if (df$gender[r] == "female") {
+#     df$age.adj[r] <- df$age.r[r] / df$`le.female.(years)`[r]
+#   }
+# }
+# 
+# df$oecd <- factor(df$oecd, levels = c(1,0), labels = c("oecd", "not oecd"))
+# 
+# df$age.adj.z <- scale(df$age.adj)
+
+```
+
+## Calculate indices
+
+```{r indices, echo=FALSE, include=FALSE}
+
+# financial wellbeing
+
+# For WP2319, respondents who say they are “living comfortably on present income” 
+# are recoded as “1,” and all other answers are recoded as “0.”
+# WP2319: 1 = living comfortably, 2-6 = other response
+
+df$WP2319_raw <- df$WP2319
+df$WP2319 <- 0
+df$WP2319[df$WP2319_raw == 1] <- 1
+df$WP2319[is.na(df$WP2319_raw)] <- NA
+
+# The remaining four items are recoded so that positive answers are scored as a “1” 
+# and all other answers (including don’t know and refused) are assigned a score of “0.”
+# WP30: 1 = satisfied, 2-4 = other response
+# WP31: 1 = getting better, 2-4 = other response
+# WP88: 1 = getting better, 2-5 = other response
+
+df$WP30_raw <- df$WP30
+df$WP30 <- 0
+df$WP30[df$WP30_raw == 1] <- 1
+df$WP30[is.na(df$WP30_raw)] <- NA
+df$WP31_raw <- df$WP31
+df$WP31 <- 0
+df$WP31[df$WP31_raw == 1] <- 1
+df$WP31[is.na(df$WP31_raw)] <- NA
+df$WP88_raw <- df$WP88
+df$WP88 <- 0
+df$WP88[df$WP88_raw == 1] <- 1
+df$WP88[is.na(df$WP88_raw)] <- NA
+
+# An individual record has an index calculated if it has valid scores for WP2319 and valid scores from at
+# least three of the other four index questions. A record’s final index score is the average of the mean 
+# for responses to WP2319 and the mean of the three other items multiplied by 100.
+
+# TODO - says 3 of 4 other index questions but only 3 others - assumed at least 2 of 3 but check?
+
+df <- df %>% 
+  mutate(WP30_31_88 = select(., c("WP30", "WP31", "WP88")) %>% rowMeans(na.rm = T)) %>% 
+  mutate(WP30_31_88_count = rowSums(!is.na(df %>% select("WP30", "WP31", "WP88"))))
+df$WP30_31_88[df$WP30_31_88_count < 2] <- NA
+
+df <- df %>% 
+  mutate(financial_wellbeing = select(., c("WP30_31_88", "WP2319")) %>% rowMeans(na.rm = T) * 100) %>% 
+  mutate(WP2319_303188_count = rowSums(!is.na(df %>% select("WP30_31_88", "WP2319"))))
+df$financial_wellbeing[df$WP2319_303188_count < 2] <- NA
+
+df$financial_wellbeing <- scale(df$financial_wellbeing)
+
+# physical wellbeing
+
+# all items are recoded so that favorable answers are scored as a “1” and all other answers 
+# (including don’t know and refused) are assigned a score of “0.”
+# WP23: health problem? 2 = favourable (no) 1,3&4 = other response
+# WP60: well-rested? 1 = favourable (yes) 2-4 = other response
+# WP68: physical pain? 2 = favourable (no) 1,3&4 = other response
+# WP69: worry? 2 = favourable (no) 1,3&4 = other response
+# WP70: sadness? 2 = favourable (no) 1,3&4 = other response
+
+df$WP23_raw <- df$WP23
+df$WP23 <- 0
+df$WP23[df$WP23_raw == 2] <- 1
+df$WP23[is.na(df$WP23_raw)] <- NA
+df$WP60_raw <- df$WP60
+df$WP60 <- 0
+df$WP60[df$WP60_raw == 1] <- 1
+df$WP60[is.na(df$WP60_raw)] <- NA
+df$WP68_raw <- df$WP68
+df$WP68 <- 0
+df$WP68[df$WP68_raw == 2] <- 1
+df$WP68[is.na(df$WP68_raw)] <- NA
+df$WP69_raw <- df$WP69
+df$WP69 <- 0
+df$WP69[df$WP69_raw == 2] <- 1
+df$WP69[is.na(df$WP69_raw)] <- NA
+df$WP70_raw <- df$WP70
+df$WP70 <- 0
+df$WP70[df$WP70_raw == 2] <- 1
+df$WP70[is.na(df$WP70_raw)] <- NA
+
+# Respondents must have answered at least four questions for an individual index to be calculated.
+# A record’s final index score is the mean of valid items multiplied by 100.
+
+df <- df %>% 
+  mutate(physical_wellbeing = select(., c("WP23", "WP60", "WP68", "WP69", "WP70")) %>% rowMeans(na.rm = T) * 100) %>% 
+  mutate(WP23_60_68_69_70_count = rowSums(!is.na(df %>% select("WP23", "WP60", "WP68", "WP69", "WP70"))))
+df$physical_wellbeing[df$WP23_60_68_69_70_count < 4] <- NA
+
+df$physical_wellbeing <- scale(df$physical_wellbeing)
+
+# prosocial behaviours
+# WP108: donated? 1 = yes, 2-4 = other response
+# WP109: volunteered? 1 = yes, 2-4 = other response
+# WP110: helped? 1 = yes, 2-4 = other response
+
+df$WP108_raw <- df$WP108
+df$WP108 <- 0
+df$WP108[df$WP108_raw == 1] <- 1
+df$WP108[is.na(df$WP108_raw)] <- NA
+df$WP109_raw <- df$WP109
+df$WP109 <- 0
+df$WP109[df$WP109_raw == 1] <- 1
+df$WP109[is.na(df$WP109_raw)] <- NA
+df$WP110_raw <- df$WP110
+df$WP110 <- 0
+df$WP110[df$WP110_raw == 1] <- 1
+df$WP110[is.na(df$WP110_raw)] <- NA
+
+```
+
+## PCA
+
+```{r pca, echo=FALSE, include=FALSE}
+
+# TODO get this to precisely match Fabians?
+
+# without weighting, with neg reciprocity
+df.dropna <- df %>% drop_na(c("posrecip", "negrecip", "altruism", "trust")) %>% 
+  select(posrecip, negrecip, altruism, trust)
+
+cor(df.dropna[,c("posrecip", "negrecip", "altruism", "trust")])
+
+dat.pca <- prcomp(df.dropna[,c("posrecip", "negrecip", "altruism", "trust")], scale = TRUE)
+
+summary(dat.pca)
+
+fviz_eig(dat.pca)
+
+fviz_pca_var(dat.pca,
+             col.var = "contrib", # Color by contributions to the PC
+             gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"),
+             repel = TRUE     # Avoid text overlapping
+)
+
+get_eigenvalue(dat.pca)
+
+#without weighting, without neg reciprocity
+
+cor(df.dropna[,c("posrecip", "altruism", "trust")])
+
+dat.pca <- prcomp(df.dropna[,c("posrecip", "altruism", "trust")], scale = TRUE)
+
+summary(dat.pca)
+
+fviz_eig(dat.pca)
+
+fviz_pca_var(dat.pca,
+             col.var = "contrib", # Color by contributions to the PC
+             gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"),
+             repel = TRUE     # Avoid text overlapping
+)
+
+get_eigenvalue(dat.pca)
+
+#loadings of variable on each component
+dat.pca$rotation
+
+dat.var <- get_pca_var(dat.pca)
+dat.var$contrib        # Contributions to the Principal Component
+
+# Create new prosociality composite based on CONTRIBUTION weighting
+df$prosocial_contrib <- scale(dat.var$contrib["posrecip",1]*df$posrecip + 
+                                dat.var$contrib["altruism",1]*df$altruism + 
+                                dat.var$contrib["trust",1]*df$trust)
+
+# Create new prosociality composite based on COMPONENT LOADING weighting
+df$prosocial_load <- scale(dat.pca$rotation["posrecip",1]*df$posrecip + 
+                             dat.pca$rotation["altruism",1]*df$altruism + 
+                             dat.pca$rotation["trust",1]*df$trust) * -1
+
+#create weighted prosociliaty measures
+df$prosocial_wgt_c <- df$prosocial_contrib * df$wgt
+df$prosocial_wgt_l <- df$prosocial_load * df$wgt
+
+```
+
+## Overall preferences and behaviour models
+
+```{r overall-models, eval=FALSE, echo=FALSE}
+
+# df.pref <- as_tibble(df) %>% 
+#   rename(pref_posrecip = "posrecip") %>% 
+#   rename(pref_altruism = "altruism") %>% 
+#   rename(pref_trust = "trust") 
+# 
+# df.pref <-  df.pref %>% 
+#   pivot_longer(cols = starts_with("pref"), names_to = "pref", names_prefix = "pref_", values_to = "prosociality")
+# 
+# model.quad.pref <- lmer(prosociality ~ gender + financial_wellbeing + physical_wellbeing + subj_math_skills + poly(age,2)*pref +
+#                      (1 | id:country) + (1 | country) + #(0 + gender | country) +
+#                      (0 + financial_wellbeing | country) + (0 + physical_wellbeing | country) + (0 + subj_math_skills | country) +
+#                      (0 + age | country), data = df.pref, control = lmerControl(optimizer="bobyqa", optCtrl=list(maxfun=2e5)))
+# save(model.quad.pref, file = paste0("output/Preferences_quadratic_model.RData"))
+# 
+# model.lin.pref <- lmer(prosociality ~ gender + financial_wellbeing + physical_wellbeing + subj_math_skills + age*pref +
+#                      (1 | id:country) + (1 | country) + #(0 + gender | country) +
+#                      (0 + financial_wellbeing | country) + (0 + physical_wellbeing | country) + (0 + subj_math_skills | country) +
+#                      (0 + age | country), data = df.pref, control = lmerControl(optimizer="bobyqa", optCtrl=list(maxfun=2e5)))
+# save(model.lin.pref, file = paste0("output/Preferences_linear_model.RData"))
+
+load(paste0("output/Preferences_quadratic_model.RData"))
+load(paste0("output/Preferences_linear_model.RData"))
+
+results.quad.pref <- model_parameters(model.quad.pref, effects = "fixed")
+
+r.quad.pref <- results.quad.pref %>%
+  filter(Effects == "fixed") %>%
+  select(!c(Effects)) %>%
+  mutate(Parameter = str_replace_all(Parameter, pattern = ":", replacement = " * ")) %>% # for interactions
+  mutate(Parameter = str_replace(Parameter, pattern = "gender1", replacement = "gender")) %>%
+  mutate(Parameter = str_replace(Parameter, pattern = fixed("poly(age, 2)1"), replacement = "linear effect of age")) %>%
+  mutate(Parameter = str_replace(Parameter, pattern = fixed("poly(age, 2)2"), replacement = "quadratic effect of age")) 
+
+r.quad.pref$p[!is.na(r.quad.pref$p)] <- pvalr(r.quad.pref$p[!is.na(r.quad.pref$p)])
+kable(r.quad.pref,
+      align = c('l',rep('c',(ncol(r.quad.pref)-1))),
+      caption = paste0("Quadratic mixed-effects model predicting prosocial preferences")) %>%
+  kable_styling()
+
+results.lin.pref <- model_parameters(model.lin.pref, effects = "fixed")
+
+r.lin.pref <- results.lin.pref %>%
+  filter(Effects == "fixed") %>%
+  select(!c(Effects)) %>%
+  mutate(Parameter = str_replace_all(Parameter, pattern = ":", replacement = " * ")) %>% # for interactions
+  mutate(Parameter = str_replace(Parameter, pattern = "gender1", replacement = "gender")) %>%
+  mutate(Parameter = str_replace(Parameter, pattern = fixed("poly(age, 2)1"), replacement = "linear effect of age")) 
+
+r.lin.pref$p[!is.na(r.lin.pref$p)] <- pvalr(r.lin.pref$p[!is.na(r.lin.pref$p)])
+kable(r.lin.pref,
+      align = c('l',rep('c',(ncol(r.lin.pref)-1))),
+      caption = paste0("Linear mixed-effects model predicting prosocial preferences")) %>%
+  kable_styling()
+
+df.behav <-  as_tibble(df) %>%
+  rename(behav_donate = "WP108") %>%
+  rename(behav_volunteer = "WP109") %>%
+  rename(behav_help = "WP110")
+
+df.behav <-  df.behav %>%
+  pivot_longer(cols = starts_with("behav"), names_to = "behav", names_prefix = "behav_", values_to = "prosociality")
+
+# model.quad.behav <- glmer(prosociality ~ gender + financial_wellbeing + physical_wellbeing + subj_math_skills + poly(age,2)*behav +
+#                      (1 | id:country) + (1 | country) + #(0 + gender | country) +
+#                      (0 + financial_wellbeing | country) + (0 + physical_wellbeing | country) + (0 + subj_math_skills | country) +
+#                      (0 + age | country), data = df.behav, family = "binomial", control = glmerControl(optimizer="bobyqa", optCtrl=list(maxfun=2e5)))
+# save(model.quad.behav, file = paste0("output/Behaviours_quadratic_model.RData"))
+# 
+# model.lin.behav <- glmer(prosociality ~ gender + financial_wellbeing + physical_wellbeing + subj_math_skills + age*behav +
+#                      (1 | id:country) + (1 | country) + #(0 + gender | country) +
+#                      (0 + financial_wellbeing | country) + (0 + physical_wellbeing | country) + (0 + subj_math_skills | country) +
+#                      (0 + age | country), data = df.behav, family = "binomial", control = glmerControl(optimizer="bobyqa", optCtrl=list(maxfun=2e5)))
+# save(model.lin.behav, file = paste0("output/Behaviours_linear_model.RData"))
+
+# load(paste0("output/Behaviours_quadratic_model.RData"))
+load(paste0("output/Behaviours_linear_model.RData"))
+
+# results.quad.behav <- model_parameters(model.quad.behav, exponentiate = T, effects = "fixed")
+# 
+# r.quad.behav <- results.quad.behav %>%
+#   filter(Effects == "fixed") %>%
+#   select(!c(Effects)) %>%
+#   mutate(Parameter = str_replace_all(Parameter, pattern = ":", replacement = " * ")) %>% # for interactions
+#   mutate(Parameter = str_replace(Parameter, pattern = "gender1", replacement = "gender")) %>%
+#   mutate(Parameter = str_replace(Parameter, pattern = fixed("poly(age, 2)1"), replacement = "quadratic effect of age")) %>% 
+#   mutate(Parameter = str_replace(Parameter, pattern = fixed("poly(age, 2)2"), replacement = "quadratic effect of age"))
+# 
+# r.quad.behav$p[!is.na(r.quad.behav$p)] <- pvalr(r.quad.behav$p[!is.na(r.quad.behav$p)])
+# kable(r.quad.behav,
+#       align = c('l',rep('c',(ncol(r.quad.behav)-1))),
+#       caption = paste0("Quadratic mixed-effects model predicting prosocial behaviours")) %>%
+#   kable_styling()
+
+results.lin.behav <- model_parameters(model.lin.behav, exponentiate = T, effects = "fixed")
+
+r.lin.behav <- results.lin.behav %>%
+  filter(Effects == "fixed") %>%
+  select(!c(Effects)) %>%
+  mutate(Parameter = str_replace_all(Parameter, pattern = ":", replacement = " * ")) %>% # for interactions
+  mutate(Parameter = str_replace(Parameter, pattern = "gender1", replacement = "gender")) %>%
+  mutate(Parameter = str_replace(Parameter, pattern = fixed("poly(age, 2)1"), replacement = "linear effect of age")) 
+
+r.lin.behav$p[!is.na(r.lin.behav$p)] <- pvalr(r.lin.behav$p[!is.na(r.lin.behav$p)])
+kable(r.lin.behav,
+      align = c('l',rep('c',(ncol(r.lin.behav)-1))),
+      caption = paste0("Linear mixed-effects model predicting prosocial behaviours")) %>%
+  kable_styling()
+
+```
+
+## Plotting and modelling each preference
+
+```{r pref-models-plots, echo=FALSE, message=FALSE, warning=FALSE, results='asis'}
+
+#Overall effects
+
+for (v in 1:length(prefs)) {
+# for (v in 1:1) {
+  
+  pref <- prefs[v]
+  pref.lab <- pref.labs[v]
+  
+  # create dataframe for modelling/plotting cycling through outcome variables one by one
+  df.mod <- df %>% 
+    dplyr::rename("outcome" = paste(pref)) %>% 
+    drop_na(c("outcome"))
+  
+  # For SPEED of plotting cut out the model if required
+  
+  # model.quad <- lmer(outcome ~ gender + financial_wellbeing + physical_wellbeing + subj_math_skills + poly(age,2) +
+  #                      (1 | country) + #(0 + gender | country) +
+  #                      (0 + financial_wellbeing | country) + (0 + physical_wellbeing | country) + (0 + subj_math_skills | country) +
+  #                      (0 + age | country), data = df.mod, control = lmerControl(optimizer="bobyqa", optCtrl=list(maxfun=2e5)))
+  # save(model.quad, file = paste0("output/",pref.lab, "_quadratic_model.RData"))
+  
+  load(file = paste0("output/",pref.lab, "_quadratic_model.RData"))
+  
+  results.quad <- model_parameters(modelpre.quad, effects = "fixed")
+
+  r.quad <- results.quad %>%
+    filter(Effects == "fixed") %>%
+    select(!c(Effects)) %>%
+    # mutate(Parameter = str_replace_all(Parameter, pattern = ":", replacement = " * ")) %>% # for interactions
+    mutate(Parameter = str_replace(Parameter, pattern = "gender1", replacement = "gender")) %>%
+    mutate(Parameter = str_replace(Parameter, pattern = fixed("poly(age, 2)1"), replacement = "linear effect of age")) %>%
+    mutate(Parameter = str_replace(Parameter, pattern = fixed("poly(age, 2)2"), replacement = "quadratic effect of age"))
+
+  r.quad$p[!is.na(r.quad$p)] <- pvalr(r.quad$p[!is.na(r.quad$p)])
+  kable(r.quad,
+        align = c('l',rep('c',(ncol(r.quad)-1))),
+        caption = paste0("Quadratic linear mixed-effects model predicting ", pref.lab)) %>%
+  kable_styling() %>% 
+  htmltools::HTML() %>% 
+  print
+  cat("\n")
+  
+  # model.lin <- lmer(outcome ~ gender + financial_wellbeing + physical_wellbeing + subj_math_skills + age +
+  #                     (1 | country) + #(0 + gender | country) +
+  #                     (0 + financial_wellbeing | country) + (0 + physical_wellbeing | country) + (0 + subj_math_skills | country) +
+  #                     (0 + age | country), data = df.mod, control = lmerControl(optimizer="bobyqa", optCtrl=list(maxfun=2e5)))
+  # save(model.lin, file = paste0("output/",pref.lab, "_linear_model.RData"))
+  
+  # load(file = paste0("output/",pref.lab, "_linear_model.RData"))
+  #   
+  # results.lin <- model_parameters(model.lin, effects = "fixed")
+  # 
+  # r.lin <- results.lin %>%
+  #   filter(Effects == "fixed") %>%
+  #   select(!c(Effects)) %>%
+  #   # mutate(Parameter = str_replace_all(Parameter, pattern = ":", replacement = " * ")) %>% # for interactions
+  #   mutate(Parameter = str_replace(Parameter, pattern = "gender1", replacement = "gender")) %>%
+  #   mutate(Parameter = str_replace(Parameter, pattern = fixed("poly(age, 2)1"), replacement = "linear effect of age")) 
+  # 
+  # r.lin$p[!is.na(r.lin$p)] <- pvalr(r.lin$p[!is.na(r.lin$p)])
+  # kable(r.lin,
+  #             align = c('l',rep('c',(ncol(r.lin)-1))),
+  #             caption = paste0("Linear mixed-effects model predicting ", pref.lab))%>%
+  # kable_styling() %>% 
+  # htmltools::HTML() %>% 
+  # print
+  # cat("\n")
+  
+  # Plot 
+  
+  plot.age <- ggplot(df.mod, aes(x = age.r, y = outcome)) + 
+    # geom_point(color = dotcols[1], shape = 21, fill = NA, alpha = 0.01, size = 1, show.legend = FALSE) +
+    
+    geom_smooth(data = df.mod, color = 'black', fill = 'black', linetype = "solid", method = "lm", formula = y ~ poly(x,2), alpha = 0.1, size = 1.5, show.legend = FALSE) + # quadratic
+    
+    # geom_smooth(data = df.mod, color = 'black', linetype = "dashed", method = "lm", formula = y ~ x, alpha = 0.3, size = 0.6, show.legend = FALSE, se = FALSE) +  #linear 
+    
+    scale_x_continuous(name = "Age") +
+    scale_y_continuous(name = pref.lab) + 
+    theme_classic() + 
+    theme(axis.text = element_markdown(size = axtext),
+          axis.title.x = element_markdown(size = axtitle),
+          axis.title.y = element_markdown(size = axtitle))
+  
+  print(plot.age)
+  
+  # plot.age.continent <- plot.age + facet_wrap("continent")
+  # 
+  # print(plot.age.continent)
+  # 
+  # plot.age.gender <- plot.age +
+  #   facet_grid(cols = prefs(gender))
+  # 
+  # print(plot.age.gender)
+  # 
+  # plot.age.oecd <- plot.age +
+  #   facet_grid(cols = prefs(oecd))
+  # 
+  # print(plot.age.oecd)
+  # 
+  # plot.age.gdp <- plot.age +
+  #   facet_grid(cols = prefs(gdp.quart))
+  # 
+  # print(plot.age.gdp)
+  
+  cat("\n")
+  
+}
+
+```
+
+## Plotting and modelling each behaviour
+
+```{r behav-models-plots, eval=FALSE, echo=FALSE, message=FALSE, warning=FALSE, results='asis'}
+
+#Overall effects
+
+for (v in 1:length(behavs)) {
+# for (v in 1:1) {
+  
+  behav <- behavs[v]
+  behav.lab <- behav.labs[v]
+  
+  # create dataframe for modelling/plotting cycling through outcome variables one by one
+  df.mod <- df %>% 
+    dplyr::rename("outcome" = paste(behav)) %>% 
+    drop_na(c("outcome"))
+  
+  # For SPEED of plotting cut out the model if required
+  
+  # model.quad <- glmer(outcome ~ gender + financial_wellbeing + physical_wellbeing + subj_math_skills + poly(age,2) +
+  #                      (1 | country) + #(0 + gender | country) +
+  #                      (0 + financial_wellbeing | country) + (0 + physical_wellbeing | country) + (0 + subj_math_skills | country) +
+  #                      (0 + age | country), data = df.mod, family = "binomial", control = glmerControl(optimizer="bobyqa", optCtrl=list(maxfun=2e5)))
+  # save(model.quad, file = paste0("output/",behav.lab, "_quadratic_model.RData"))
+
+  load(file = paste0("output/", behav.lab,"_quadratic_model.RData"))
+
+  results.quad <- model_parameters(model.quad, effects = "fixed")
+
+  r.quad <- results.quad %>%
+    filter(Effects == "fixed") %>%
+    select(!c(Effects)) %>%
+    # mutate(Parameter = str_replace_all(Parameter, pattern = ":", replacement = " * ")) %>% # for interactions
+    mutate(Parameter = str_replace(Parameter, pattern = "gender1", replacement = "gender")) %>%
+    mutate(Parameter = str_replace(Parameter, pattern = fixed("poly(age, 2)1"), replacement = "linear effect of age")) %>%
+    mutate(Parameter = str_replace(Parameter, pattern = fixed("poly(age, 2)2"), replacement = "quadratic effect of age"))
+
+  r.quad$p[!is.na(r.quad$p)] <- pvalr(r.quad$p[!is.na(r.quad$p)])
+  kable(r.quad,
+        align = c('l',rep('c',(ncol(r.quad)-1))),
+        caption = paste0("Quadratic linear mixed-effects model predicting ", behav.lab)) %>%
+  kable_styling() %>%
+  htmltools::HTML() %>%
+  print
+  cat("\n")
+
+  # model.lin <- glmer(outcome ~ gender + financial_wellbeing + physical_wellbeing + subj_math_skills + age +
+  #                     (1 | country) + #(0 + gender | country) +
+  #                     (0 + financial_wellbeing | country) + (0 + physical_wellbeing | country) + (0 + subj_math_skills | country) +
+  #                     (0 + age | country), data = df.mod, family = "binomial", control = glmerControl(optimizer="bobyqa", optCtrl=list(maxfun=2e5)))
+  # save(model.lin, file = paste0("output/",behav.lab, "_linear_model.RData"))
+
+  load(file = paste0("output/",behav.lab, "_linear_model.RData"))
+
+  results.lin <- model_parameters(model.lin, effects = "fixed")
+
+  r.lin <- results.lin %>%
+    filter(Effects == "fixed") %>%
+    select(!c(Effects)) %>%
+    # mutate(Parameter = str_replace_all(Parameter, pattern = ":", replacement = " * ")) %>% # for interactions
+    mutate(Parameter = str_replace(Parameter, pattern = "gender1", replacement = "gender")) %>%
+    mutate(Parameter = str_replace(Parameter, pattern = fixed("poly(age, 2)1"), replacement = "linear effect of age"))
+
+  r.lin$p[!is.na(r.lin$p)] <- pvalr(r.lin$p[!is.na(r.lin$p)])
+  kable(r.lin,
+              align = c('l',rep('c',(ncol(r.lin)-1))),
+              caption = paste0("Linear mixed-effects model predicting ", behav.lab))%>%
+  kable_styling() %>%
+  htmltools::HTML() %>%
+  print
+  cat("\n")
+
+  # Plot quadratic and linear fit
+  plot.age <- ggplot(df.mod, aes(x = age.r, y = outcome)) + 
+    # geom_point(color = dotcols[1], shape = 21, fill = NA, alpha = 0.01, size = 1, show.legend = FALSE) +
+    geom_smooth(data = df.mod, color = 'black', fill = 'black', linetype = "solid", method = "glm", family=binomial, formula = y~poly(x,2), 
+                alpha = 0.1, size = 1.5, show.legend = FALSE) + # quadratic
+    scale_x_continuous(name = "Age") +
+    scale_y_continuous(name = behav.lab) +
+    theme_classic() + 
+    theme(axis.text = element_markdown(size = axtext),
+          axis.title.x = element_markdown(size = axtitle),
+          axis.title.y = element_markdown(size = axtitle))
+  
+  print(plot.age)
+  
+  # plot.age.continent <- plot.age + facet_wrap("continent")
+  # 
+  # print(plot.age.continent)
+  # 
+  # plot.age.gender <- plot.age +
+  #   facet_grid(cols = behavs(gender))
+  # 
+  # print(plot.age.gender)
+  # 
+  # plot.age.oecd <- plot.age +
+  #   facet_grid(cols = behavs(oecd))
+  # 
+  # print(plot.age.oecd)
+  # 
+  # plot.age.gdp <- plot.age +
+  #   facet_grid(cols = behavs(gdp.quart))
+  # 
+  # print(plot.age.gdp)
+  
+  cat("\n")
+  
+}
+
+```
+
+## Quantification of effects in each country 
+
+```{r country-effects, echo=FALSE, warning=FALSE, fig.align="center", fig.width=10, fig.height=8}
+
+# cntry.list <- read.csv("data/List_countries.csv", sep = ",", header = TRUE) # list of countries
+cntry.list <- df %>% 
+  select(c("isocode", "country"))
+cntry.list <- unique(cntry.list)
+
+# create a dataframe with the country information and columns of NA to fill in below
+countrycols <- c("code", "region", "posrecip", "negrecip", "altruism", "trust", "prosocial_contrib", "n")
+# country.results <- data.frame(cntry.list$ISO3, cntry.list$Map.Name, matrix(data = NA, nrow = nrow(cntry.list), ncol = (length(countrycols) - 2)))
+country.results <- data.frame(cntry.list$isocode, cntry.list$country, matrix(data = NA, nrow = length(cntry.list), ncol = (length(countrycols) - 2)))
+names(country.results) <- countrycols
+country.results.p <- country.results[,1:6]
+
+# loop over each country
+for (c in country.results$code) {
+  
+  cdf <- subset(df, isocode == c) # select rows from that country
+  
+  # standardise variables
+  cdf[,c("age", "posrecip", "negrecip", "altruism", "trust", "prosocial_contrib")] <- scale(cdf[,c("age", "posrecip", "negrecip", "altruism", "trust", "prosocial_contrib")])
+  
+  # run linear model for each outcome & extract parameters
+  cntry.p <- model_parameters(lm(posrecip ~ gender + age, data = cdf), standardize = "refit")
+  cntry.n <- model_parameters(lm(negrecip ~ gender + age, data = cdf), standardize = "refit")
+  cntry.a <- model_parameters(lm(altruism ~ gender + age, data = cdf), standardize = "refit")
+  cntry.t <- model_parameters(lm(trust ~ gender + age, data = cdf), standardize = "refit")
+  cntry.pr <- model_parameters(lm(prosocial_contrib ~ gender + age, data = cdf), standardize = "refit")
+  country.results[country.results$code == c, 3:7] = c(tail(cntry.p$Coefficient,1),
+                                                      tail(cntry.n$Coefficient,1), 
+                                                      tail(cntry.a$Coefficient,1),
+                                                      tail(cntry.t$Coefficient,1),
+                                                      tail(cntry.pr$Coefficient,1))
+  country.results.p[country.results.p$code == c, 3:7] = c(tail(cntry.p$p,1),
+                                                          tail(cntry.n$p,1), 
+                                                          tail(cntry.a$p,1), 
+                                                          tail(cntry.t$p,1),
+                                                          tail(cntry.pr$p,1))
+  country.results$n[country.results$code == c] = nrow(cdf)
+  
+}
+
+country.results.all <- country.results
+
+# create data for map
+world_map <- map_data("world") %>%
+  subset(region != "Antarctica")
+
+#map world_map countries to ISO codes
+world_map$code <- countrycode(world_map$region, 'country.name', 'iso3c')
+
+# # # select countries in dataset
+# continents <- df %>% 
+#   select("isocode", "Continent") %>% 
+#   distinct()
+# names(continents) <- c("code", "continent")
+# continents$code <- as.character(continents$code)
+# 
+# # combine country information with results & add European countries no data collected in to show blank on map
+# continents <- left_join(continents, country.results, by = "code") %>% 
+#   add_row(region = c("Cyprus", "Czech Republic", "Estonia", "Lithuania", "Luxembourg", "Malta", "Portugal", "Belarus", "Moldova", "Slovenia", "Bosnia and Herzegovina", "Montenegro", "Kosovo", "Albania", "Bulgaria"), continent = rep("Europe", 15))
+df.world <- left_join(world_map %>% select(-region), country.results, by = "code")
+# df.europe <- subset(df.world, continent == "Europe" & region != "Russia")
+
+# add OECD index to map dataframe - GENDER file code
+df.world$oecd <- NA
+
+for (r in 1:nrow(df.world)) {
+  if (is.na(df.world$code[r])) {
+    df.world$oecd[r] <- 0
+  } else {
+    if (sum(str_detect(oecd.code, df.world$code[r])) == 0) {
+      df.world$oecd[r] <- 0
+    } else if (sum(str_detect(oecd.code, df.world$code[r])) == 1) {
+      df.world$oecd[r] <- 1
+    } else {stop('not found 1 or 0 matches')}
+  }
+}
+
+df.world$oecd <- factor(df.world$oecd, levels = c(0,1), labels = c("oecd", "not oecd"))
+
+#END OF GENDER FILE CODE
+
+```
+
+# Create map plots
+
+```{r country-plots, echo=FALSE, fig.align="center", fig.width=10, fig.height=8}
+
+# create a map figure for each outcome
+
+world.posrecip <- ggplot(df.world, aes(long, lat, group = group)) +
+  geom_polygon(aes(fill = posrecip), color = "white", size = .1) +
+  scale_fill_gradient2(low = neg.corr.col, mid = "white", high = pos.corr.col, midpoint = 0, na.value = "#ECECEC", name = expression(beta)) +
+  theme_void() +
+  draw_plot_label("Positive reciprocity", x = -180, y = -10, hjust = 0, vjust = 0, angle = 90, size = axtitle, fontface = "plain")
+
+# europe.posrecip <- ggplot(df.europe, aes(long, lat, group = group)) +
+#   geom_polygon(aes(fill = distancing), color = "white", size = .1) +
+#   scale_fill_gradientn(colours = col2(200), limits = c(-.28, .28), breaks = c(-0.2, 0, 0.2), na.value = "#ECECEC", name = expression(beta)) +
+#   theme_void() +
+#   guides(fill = guide_colorbar(title.hjust = 0.05)) + 
+#   theme(legend.text = element_text(size = axtext),
+#         legend.title = element_text(size = axtitle))
+
+world.negrecip <- ggplot(df.world, aes(long, lat, group = group)) +
+  geom_polygon(aes(fill = negrecip), color = "white", size = .1) +
+  scale_fill_gradient2(low = neg.corr.col, mid = "white", high = pos.corr.col, midpoint = 0, na.value = "#ECECEC", name = expression(beta)) +
+  theme_void() +
+  draw_plot_label("Negative reciprocity", x = -180, y = -20, hjust = 0, vjust = 0, angle = 90, size = axtitle, fontface = "plain")
+
+# europe.negrecip <- ggplot(df.europe, aes(long, lat, group = group)) +
+#   geom_polygon(aes(fill = negrecip), color = "white", size = .1) +
+#   scale_fill_gradientn(colours = col2(200), limits = c(-.28, .28), breaks = c(-0.2, 0, 0.2), na.value = "#ECECEC", name = expression(beta)) +
+#   theme_void() +
+#   guides(fill = guide_colorbar(title.hjust = 0.05)) + 
+#   theme(legend.text = element_text(size = axtext),
+#         legend.title = element_text(size = axtitle))
+
+world.altruism <- ggplot(df.world, aes(long, lat, group = group)) +
+  geom_polygon(aes(fill = altruism), color = "white", size = .1) +
+  scale_fill_gradient2(low = neg.corr.col, mid = "white", high = pos.corr.col, midpoint = 0, na.value = "#ECECEC", name = expression(beta)) +
+  theme_void() +
+  draw_plot_label("Altruism", x = -180, y = -35, hjust = 0, vjust = 0, angle = 90, size = axtitle, fontface = "plain")
+
+# europe.inter <- ggplot(df.europe, aes(long, lat, group = group)) +
+#   geom_polygon(aes(fill = altruism), color = "white", size = .1) +
+#   scale_fill_gradientn(colours = col2(200), limits = c(-.28, .28), breaks = c(-0.2, 0, 0.2), na.value = "#ECECEC", name = expression(beta)) +
+#   theme_void() +
+#   guides(fill = guide_colorbar(title.hjust = 0.05)) + 
+#   theme(legend.text = element_text(size = axtext),
+#         legend.title = element_text(size = axtitle))
+
+world.trust <- ggplot(df.world, aes(long, lat, group = group)) +
+  geom_polygon(aes(fill = trust), color = "white", size = .1) +
+  scale_fill_gradient2(low = neg.corr.col, mid = "white", high = pos.corr.col, midpoint = 0, na.value = "#ECECEC", name = expression(beta)) +
+  theme_void() +
+  draw_plot_label("Trust", x = -180, y = -35, hjust = 0, vjust = 0, angle = 90, size = axtitle, fontface = "plain")
+
+
+world.prosocial <- ggplot(df.world, aes(long, lat, group = group)) +
+  geom_polygon(aes(fill = prosocial_contrib), color = "white", size = .1) +
+  scale_fill_gradient2(low = neg.corr.col, mid = "white", high = pos.corr.col, midpoint = 0, na.value = "#ECECEC", name = expression(beta)) +
+  theme_void() +
+  draw_plot_label("Prosociality", x = -180, y = -35, hjust = 0, vjust = 0, angle = 90, size = axtitle, fontface = "plain")
+
+print(world.prosocial)
+
+plots.map <- plot_grid(world.posrecip, world.negrecip, world.altruism, world.trust,
+                       align = "v", nrow = 3, labels = "auto", label_size = axtitle-4)
+
+print(plots.map)
+
+```
