@@ -25,6 +25,7 @@ pacman::p_load(car,
                Hmisc,
                hrbrthemes,
                irr,
+               jtools,
                kableExtra,
                lavaan,
                lemon,
@@ -84,6 +85,7 @@ contrasts(df$gender) <- contr.sum(length(levels(df$gender)))
 
 df$age.r <- df$age
 df$age <- scale(df$age)
+df$subj_math_skills.r <- df$subj_math_skills
 df$subj_math_skills <- scale(df$subj_math_skills)
 
 resolution <- 300
@@ -220,6 +222,7 @@ df <- df %>%
   mutate(WP2319_303188_count = rowSums(!is.na(df %>% select("WP30_31_88", "WP2319"))))
 df$financial_wellbeing[df$WP2319_303188_count < 2] <- NA
 
+df$financial_wellbeing.r <- df$financial_wellbeing
 df$financial_wellbeing <- scale(df$financial_wellbeing)
 
 # physical wellbeing
@@ -261,6 +264,7 @@ df <- df %>%
   mutate(WP23_60_68_69_70_count = rowSums(!is.na(df %>% select("WP23", "WP60", "WP68", "WP69", "WP70"))))
 df$physical_wellbeing[df$WP23_60_68_69_70_count < 4] <- NA
 
+df$physical_wellbeing.r <- df$physical_wellbeing
 df$physical_wellbeing <- scale(df$physical_wellbeing)
 
 # prosocial behaviours
@@ -349,9 +353,58 @@ df$prosocial_wgt_l <- df$prosocial_load * df$wgt
 
 ```
 
+## DESCRIPTIVES + Data VISUALISATION
+
+```{r descriptives, echo=FALSE, include=FALSE}
+
+sum((df$gender) == "male")
+sum((df$gender) == "female")
+
+#summary descriptives
+v <- df %>% select(c("subj_math_skills.r", "age.r", "financial_wellbeing.r", "physical_wellbeing.r", "trust",
+                     "altruism", "posrecip", "negrecip", "WP108", "WP109", "WP110"))
+describe(v, skew = FALSE, quant = 0.5) %>% kbl(digits = 2, format = "html") %>% save_kable("descriptives.html")
+
+# Histogram of age distribution
+df %>% ggplot(aes(x = age.r)) + geom_histogram(colour="black", fill="grey", binwidth = 1) + xlab("Age") + ylab("Count") + geom_vline(xintercept = 39.9, linetype="dashed") + 
+  annotate(geom = "text", x = 40, y = 2500, label = "mean", hjust = -0.1) +
+  scale_x_continuous(breaks = seq(15, 73, by = 5))  + theme_apa() 
+
+# Boxplot of age distribution by country
+ggplot(df, aes(x=reorder(country, age.r, na.rm = TRUE), y=age.r)) + geom_boxplot() + ylab("Age") + xlab("") +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1, size = 7), axis.line.x = element_line(colour = "black")) + 
+  theme(panel.background = element_blank(), panel.grid.major.y = element_line(color = "grey"))
+
+#scatter plots
+#define function
+
+scatter_plot <- function(y) {
+  df %>% ggplot(aes(x = age.r, y = y)) + 
+    geom_point(
+        color="#69b3a2",
+        fill="#69b3a2",
+        shape=21,
+        alpha=0.01,
+        size=3,
+        stroke = 1
+        ) + theme_apa()
+}
+
+scatter_plot(df$prosocial_contrib)
+
+
+
+
+```
+
+
 ## Overall preferences and behaviour models
 
-```{r overall-models, eval=FALSE, echo=FALSE}
+```{r overall-models, eval=TRUE, echo=FALSE}
+
+## NOTE: models take time to run, so are hashed out, previously run model objects are loaded in from file
+
+# Create preference data-frame
 
 # df.pref <- as_tibble(df) %>% 
 #   rename(pref_posrecip = "posrecip") %>% 
@@ -360,7 +413,9 @@ df$prosocial_wgt_l <- df$prosocial_load * df$wgt
 # 
 # df.pref <-  df.pref %>% 
 #   pivot_longer(cols = starts_with("pref"), names_to = "pref", names_prefix = "pref_", values_to = "prosociality")
-# 
+
+# Run PREFERENCES QUADRATIC model
+
 # model.quad.pref <- lmer(prosociality ~ gender + financial_wellbeing + physical_wellbeing + subj_math_skills + poly(age,2)*pref +
 #                      (1 | id:country) + (1 | country) + #(0 + gender | country) +
 #                      (0 + financial_wellbeing | country) + (0 + physical_wellbeing | country) + (0 + subj_math_skills | country) +
@@ -373,10 +428,16 @@ df$prosocial_wgt_l <- df$prosocial_load * df$wgt
 #                      (0 + age | country), data = df.pref, control = lmerControl(optimizer="bobyqa", optCtrl=list(maxfun=2e5)))
 # save(model.lin.pref, file = paste0("output/Preferences_linear_model.RData"))
 
+#load pre-existing model objects for PREFERENCES
+
 load(paste0("output/Preferences_quadratic_model.RData"))
 load(paste0("output/Preferences_linear_model.RData"))
 
+# extract model parameters
+
 results.quad.pref <- model_parameters(model.quad.pref, effects = "fixed")
+
+# Make and display table of PREFERENCE model QUADRATIC effects
 
 r.quad.pref <- results.quad.pref %>%
   filter(Effects == "fixed") %>%
@@ -391,6 +452,8 @@ kable(r.quad.pref,
       align = c('l',rep('c',(ncol(r.quad.pref)-1))),
       caption = paste0("Quadratic mixed-effects model predicting prosocial preferences")) %>%
   kable_styling()
+
+# Make and display table of PREFERENCE model LINEAR effects
 
 results.lin.pref <- model_parameters(model.lin.pref, effects = "fixed")
 
@@ -407,13 +470,15 @@ kable(r.lin.pref,
       caption = paste0("Linear mixed-effects model predicting prosocial preferences")) %>%
   kable_styling()
 
-df.behav <-  as_tibble(df) %>%
-  rename(behav_donate = "WP108") %>%
-  rename(behav_volunteer = "WP109") %>%
-  rename(behav_help = "WP110")
+# Create data-frame of for behaviours modelling
 
-df.behav <-  df.behav %>%
-  pivot_longer(cols = starts_with("behav"), names_to = "behav", names_prefix = "behav_", values_to = "prosociality")
+# df.behav <-  as_tibble(df) %>%
+#   rename(behav_donate = "WP108") %>%
+#   rename(behav_volunteer = "WP109") %>%
+#   rename(behav_help = "WP110")
+# 
+# df.behav <-  df.behav %>%
+#   pivot_longer(cols = starts_with("behav"), names_to = "behav", names_prefix = "behav_", values_to = "prosociality")
 
 # model.quad.behav <- glmer(prosociality ~ gender + financial_wellbeing + physical_wellbeing + subj_math_skills + poly(age,2)*behav +
 #                      (1 | id:country) + (1 | country) + #(0 + gender | country) +
@@ -427,7 +492,7 @@ df.behav <-  df.behav %>%
 #                      (0 + age | country), data = df.behav, family = "binomial", control = glmerControl(optimizer="bobyqa", optCtrl=list(maxfun=2e5)))
 # save(model.lin.behav, file = paste0("output/Behaviours_linear_model.RData"))
 
-# load(paste0("output/Behaviours_quadratic_model.RData"))
+#load(paste0("output/Behaviours_quadratic_model.RData"))
 load(paste0("output/Behaviours_linear_model.RData"))
 
 # results.quad.behav <- model_parameters(model.quad.behav, exponentiate = T, effects = "fixed")
@@ -463,7 +528,7 @@ kable(r.lin.behav,
 
 ```
 
-## Plotting and modelling each preference
+## Plotting and modelling each PREFERENCE
 
 ```{r pref-models-plots, echo=FALSE, message=FALSE, warning=FALSE, results='asis'}
 
@@ -490,7 +555,7 @@ for (v in 1:length(prefs)) {
   
   load(file = paste0("output/",pref.lab, "_quadratic_model.RData"))
   
-  results.quad <- model_parameters(modelpre.quad, effects = "fixed")
+  results.quad <- model_parameters(model.quad, effects = "fixed")
 
   r.quad <- results.quad %>%
     filter(Effects == "fixed") %>%
@@ -578,9 +643,9 @@ for (v in 1:length(prefs)) {
 
 ```
 
-## Plotting and modelling each behaviour
+## Plotting and modelling each BEHAVIOUR
 
-```{r behav-models-plots, eval=FALSE, echo=FALSE, message=FALSE, warning=FALSE, results='asis'}
+```{r behav-models-plots, eval=TRUE, echo=FALSE, message=FALSE, warning=FALSE, results='asis'}
 
 #Overall effects
 
