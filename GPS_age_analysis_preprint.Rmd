@@ -379,18 +379,23 @@ ggplot(df, aes(x=reorder(country, age.r, na.rm = TRUE), y=age.r)) + geom_boxplot
 #define function
 
 scatter_plot <- function(y) {
-  df %>% ggplot(aes(x = age.r, y = y)) + 
+  df %>% ggplot(aes(x = age.r, y = y, group = country)) + 
     geom_point(
         color="#69b3a2",
         fill="#69b3a2",
         shape=21,
         alpha=0.01,
         size=3,
-        stroke = 1
-        ) + theme_apa()
+        stroke = 1) +
+    theme_apa() +
+    geom_smooth(method='lm', formula= y ~ x, size = 0.5, se = F, linetype = "longdash") +
+    xlab("Age")
 }
 
-scatter_plot(df$prosocial_contrib)
+scatter_plot(df$prosocial_contrib) + ylab("Prosociality")
+scatter_plot(df$posrecip)
+scatter_plot(df$altruism)
+scatter_plot(df$negrecip) + ylab("Negative Reciprocity")
 
 
 
