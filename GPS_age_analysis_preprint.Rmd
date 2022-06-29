@@ -398,8 +398,6 @@ scatter_plot(df$altruism)
 scatter_plot(df$negrecip) + ylab("Negative Reciprocity")
 
 
-
-
 ```
 
 
@@ -477,44 +475,53 @@ kable(r.lin.pref,
 
 # Create data-frame of for behaviours modelling
 
-# df.behav <-  as_tibble(df) %>%
-#   rename(behav_donate = "WP108") %>%
-#   rename(behav_volunteer = "WP109") %>%
-#   rename(behav_help = "WP110")
-# 
-# df.behav <-  df.behav %>%
-#   pivot_longer(cols = starts_with("behav"), names_to = "behav", names_prefix = "behav_", values_to = "prosociality")
+df.behav <-  as_tibble(df) %>%
+  rename(behav_donate = "WP108") %>%
+  rename(behav_volunteer = "WP109") %>%
+  rename(behav_help = "WP110")
 
-# model.quad.behav <- glmer(prosociality ~ gender + financial_wellbeing + physical_wellbeing + subj_math_skills + poly(age,2)*behav +
-#                      (1 | id:country) + (1 | country) + #(0 + gender | country) +
-#                      (0 + financial_wellbeing | country) + (0 + physical_wellbeing | country) + (0 + subj_math_skills | country) +
-#                      (0 + age | country), data = df.behav, family = "binomial", control = glmerControl(optimizer="bobyqa", optCtrl=list(maxfun=2e5)))
-# save(model.quad.behav, file = paste0("output/Behaviours_quadratic_model.RData"))
-# 
+# Create prosociality output variable
+
+df.behav <-  df.behav %>% pivot_longer(cols = starts_with("behav"), names_to = "behav", names_prefix = "behav_", values_to = "prosociality")
+
+model.quad.behav <- glmer (prosociality ~ gender + financial_wellbeing + physical_wellbeing + subj_math_skills + poly(age,2)*behav +
+                     (1 | id:country) + (1 | country) + #(0 + gender | country) +
+                     (0 + financial_wellbeing | country) + (0 + physical_wellbeing | country) +
+                     (0 + subj_math_skills | country) + (0 + age | country), 
+                     data = df.behav, 
+                     family = "binomial", 
+                     control = glmerControl(optimizer="bobyqa", optCtrl=list(maxfun=2e5))
+                     )
+
+save(model.quad.behav, file = paste0("output/Behaviours_quadratic_model.RData"))
+
 # model.lin.behav <- glmer(prosociality ~ gender + financial_wellbeing + physical_wellbeing + subj_math_skills + age*behav +
 #                      (1 | id:country) + (1 | country) + #(0 + gender | country) +
 #                      (0 + financial_wellbeing | country) + (0 + physical_wellbeing | country) + (0 + subj_math_skills | country) +
 #                      (0 + age | country), data = df.behav, family = "binomial", control = glmerControl(optimizer="bobyqa", optCtrl=list(maxfun=2e5)))
 # save(model.lin.behav, file = paste0("output/Behaviours_linear_model.RData"))
 
-#load(paste0("output/Behaviours_quadratic_model.RData"))
+load(paste0("output/Behaviours_quadratic_model.RData"))
 load(paste0("output/Behaviours_linear_model.RData"))
 
-# results.quad.behav <- model_parameters(model.quad.behav, exponentiate = T, effects = "fixed")
-# 
-# r.quad.behav <- results.quad.behav %>%
-#   filter(Effects == "fixed") %>%
-#   select(!c(Effects)) %>%
-#   mutate(Parameter = str_replace_all(Parameter, pattern = ":", replacement = " * ")) %>% # for interactions
-#   mutate(Parameter = str_replace(Parameter, pattern = "gender1", replacement = "gender")) %>%
-#   mutate(Parameter = str_replace(Parameter, pattern = fixed("poly(age, 2)1"), replacement = "quadratic effect of age")) %>% 
-#   mutate(Parameter = str_replace(Parameter, pattern = fixed("poly(age, 2)2"), replacement = "quadratic effect of age"))
-# 
-# r.quad.behav$p[!is.na(r.quad.behav$p)] <- pvalr(r.quad.behav$p[!is.na(r.quad.behav$p)])
-# kable(r.quad.behav,
-#       align = c('l',rep('c',(ncol(r.quad.behav)-1))),
-#       caption = paste0("Quadratic mixed-effects model predicting prosocial behaviours")) %>%
-#   kable_styling()
+results.quad.behav <- model_parameters(model.quad.behav, exponentiate = T, effects = "fixed")
+
+r.quad.behav <- results.quad.behav %>%
+  filter(Effects == "fixed") %>%
+  select(!c(Effects)) %>%
+  mutate(Parameter = str_replace_all(Parameter, pattern = ":", replacement = " * ")) %>% # for interactions
+  mutate(Parameter = str_replace(Parameter, pattern = "gender1", replacement = "gender")) %>%
+  mutate(Parameter = str_replace(Parameter, pattern = fixed("poly(age, 2)1"), replacement = "quadratic effect of age")) %>%
+  mutate(Parameter = str_replace(Parameter, pattern = fixed("poly(age, 2)2"), replacement = "quadratic effect of age"))
+
+r.quad.behav$p[!is.na(r.quad.behav$p)] <- pvalr(r.quad.behav$p[!is.na(r.quad.behav$p)])
+
+kable(r.quad.behav,
+      align = c('l',rep('c',(ncol(r.quad.behav)-1))),
+      caption = paste0("Quadratic mixed-effects model predicting prosocial behaviours")) %>%
+  kable_styling()
+
+save(model.quad.behav, file = paste0("output/Behaviours_linear_model.RData"))
 
 results.lin.behav <- model_parameters(model.lin.behav, exponentiate = T, effects = "fixed")
 
