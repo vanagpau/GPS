@@ -35,6 +35,7 @@ pacman::p_load(car,
                nFactors,
                parameters, 
                psych,
+               rstudioapi,
                scales,
                see,
                tidyquant,
@@ -64,6 +65,12 @@ pvalr <- function(pvals, sig.limit = .001, digits = 3, html = FALSE) {
         return(roundr(x, digits = digits))
   }, sig.limit = sig.limit)
 }
+
+# Get the name of the directory in which the current file is located.
+cur_dir = dirname(getSourceEditorContext()$path)
+
+# Change the working directory to the directory with the current file.
+setwd(cur_dir)
 
 ```
 
