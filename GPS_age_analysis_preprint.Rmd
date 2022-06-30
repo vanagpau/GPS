@@ -397,8 +397,8 @@ ggplot(df, aes(x=reorder(country, age.r, na.rm = TRUE), y=age.r)) + geom_boxplot
 #scatter plots
 #define function
 
-scatter_plot <- function(y) {
-  df %>% ggplot(aes(x = age.r, y = y, group = country)) + 
+scatter_plot <- function(x, y) {
+  df %>% ggplot(aes(x = x, y = y, group = country)) + 
     geom_point(
         color="#69b3a2",
         fill="#69b3a2",
@@ -407,18 +407,23 @@ scatter_plot <- function(y) {
         size=3,
         stroke = 1) +
     theme_apa() +
-    geom_smooth(method='lm', formula= y ~ x, size = 0.5, se = F, linetype = "longdash") +
-    xlab("Age")
+    geom_smooth(method='lm', formula= y ~ x, size = 0.5, se = F, linetype = "longdash") 
 }
 
-scatter_plot(df$prosocial_contrib) + ylab("Prosociality")
-scatter_plot(df$posrecip)
-scatter_plot(df$altruism)
-scatter_plot(df$negrecip) + ylab("Negative Reciprocity")
+scatter_plot(df$age.r, df$prosocial_contrib) + ylab("Prosociality")
+scatter_plot(df$age.r, df$posrecip)
+scatter_plot(df$age.r, df$altruism)
+scatter_plot(df$age.r, df$negrecip) + ylab("Negative Reciprocity")
 
-#Look how prosociality varies with key control variables: financial, physical, gender and subj_math_skills
+#Distributions of control variables
+df %>% ggplot(aes(x = financial_wellbeing)) + geom_histogram(colour="black", fill="grey", binwidth = 0.1) + xlab("Age") + ylab("Count") + theme_apa() 
+df %>% ggplot(aes(x = physical_wellbeing)) + geom_histogram(colour="black", fill="grey", binwidth = 0.1) + xlab("Age") + ylab("Count") + theme_apa() 
+df %>% ggplot(aes(x = subj_math_skills)) + geom_histogram(colour="black", fill="grey", binwidth = 0.1) + xlab("Age") + ylab("Count") + theme_apa() 
 
-
+#Look how prosociality varies with key control variables: financial, physical, and subj_math_skills
+scatter_plot(df$prosocial_contrib, df$financial_wellbeing) + xlab("Prosociality") + ylab("Financial wellbeing")
+scatter_plot(df$prosocial_contrib, df$physical_wellbeing) + xlab("Prosociality") + ylab("Physical wellbeing")
+scatter_plot(df$prosocial_contrib, df$subj_math_skills) + xlab("Prosociality") + ylab("Subjective maths skills")
 
 #How does absolute prosociality vary by country?
 
