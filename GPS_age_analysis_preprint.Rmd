@@ -416,6 +416,12 @@ scatter_plot(df$posrecip)
 scatter_plot(df$altruism)
 scatter_plot(df$negrecip) + ylab("Negative Reciprocity")
 
+#Look how prosociality varies with key control variables: financial, physical, gender and subj_math_skills
+
+
+
+#How does absolute prosociality vary by country?
+
 
 ```
 
@@ -437,16 +443,38 @@ df.pref <-  df.pref %>%
 
 # Run PREFERENCES QUADRATIC model with INTERACTION TERM
 
-# model.quad.pref <- lmer(prosociality ~ gender + financial_wellbeing + physical_wellbeing + subj_math_skills + poly(age,2)*pref +
-#                      (1 | id:country) + (1 | country) + #(0 + gender | country) +
-#                      (0 + financial_wellbeing | country) + (0 + physical_wellbeing | country) + (0 + subj_math_skills | country) +
-#                      (0 + age | country), data = df.pref, control = lmerControl(optimizer="bobyqa", optCtrl=list(maxfun=2e5)))
+tic <- Sys.time()
+model.quad.pref <- lmer(prosociality ~ gender + financial_wellbeing + physical_wellbeing + subj_math_skills + poly(age,2)*pref +
+                          #(1 | id:country) +  
+                          (0 + gender | country) +
+                          (1 | country) +
+                          (0 + financial_wellbeing | country) + 
+                          (0 + physical_wellbeing | country) +
+                          (0 + subj_math_skills | country) +
+                          (0 + age | country), 
+                        data = df.pref, control = lmerControl(optimizer="bobyqa", optCtrl=list(maxfun=2e5)))
+toc <- Sys.time()
+toc-tic
+
 # save(model.quad.pref, file = paste0("output/Preferences_quadratic_model.RData"))
 # 
 
 # Run PREFERENCES LINEAR model with INTERACTION TERM
 
-model.lin.pref <- lmer(prosociality ~ gender + financial_wellbeing + physical_wellbeing + subj_math_skills + age*pref + (1 | country), data = df.pref, control = lmerControl(optimizer="bobyqa", optCtrl=list(maxfun=2e5)))
+# model.lin.pref <- lmer(prosociality ~ gender + financial_wellbeing + physical_wellbeing + subj_math_skills + age*pref +
+#                      (1 | id:country) + (1 | country) + #(0 + gender | country) +
+#                      (0 + financial_wellbeing | country) + (0 + physical_wellbeing | country) + (0 + subj_math_skills | country) +
+#                      (0 + age | country), data = df.pref, control = lmerControl(optimizer="bobyqa", optCtrl=list(maxfun=2e5)))
+# save(model.lin.pref, file = paste0("output/Preferences_linear_model.RData"))
+
+# Simpler version without all random effects
+
+model.lin.pref <- lmer(prosociality ~ gender + financial_wellbeing + physical_wellbeing + subj_math_skills + age*pref + (1 | country) +
+           (0 + financial_wellbeing | country) + 
+           (0 + physical_wellbeing | country) + 
+           (0 + subj_math_skills | country) +
+           (0 + age | country),
+           data = df.pref, control = lmerControl(optimizer="bobyqa", optCtrl=list(maxfun=2e5)))
 
 # save(model.lin.pref, file = paste0("output/Preferences_linear_model.RData"))
 
