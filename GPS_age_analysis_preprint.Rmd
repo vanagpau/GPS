@@ -918,8 +918,6 @@ for (r in 1:nrow(df.world)) {
 
 df.world$oecd <- factor(df.world$oecd, levels = c(0,1), labels = c("oecd", "not oecd"))
 
-#END OF GENDER FILE CODE
-
 ```
 
 # Map plots - preferences and behaviours
@@ -942,6 +940,7 @@ global_pref_map(df.world$posrecip, "Positive Reciprocity")
 global_pref_map(df.world$negrecip, "Negative Reciprocity")
 global_pref_map(df.world$altruism, "Altruism")
 global_pref_map(df.world$posrecip, "Trust")
+global_pref_map(df.world, "Trust")
 
 
 # plots.map <- plot_grid(world.posrecip, world.negrecip, world.altruism, world.trust,
