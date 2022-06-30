@@ -430,7 +430,8 @@ scatter_plot(df$prosocial_contrib, df$subj_math_skills) + xlab("Prosociality") +
 
 ggplot(df,aes(x=age.r,y=prosocial_contrib,col=gender)) + geom_smooth(alpha=0.2, method = lm) + facet_wrap(~gender) + theme_apa() + xlab("Age") + ylab("Prosociality") + geom_point(alpha = 0.1)
 
-ggplot(df,aes(x=prosocial_contrib)) + geom_boxplot(alpha=0.2) + theme_apa() + facet_wrap(~gender) + coord_flip()
+ggplot(df,aes(x=prosocial_contrib, col=gender)) + geom_boxplot(alpha=0.2) + theme_apa() + facet_wrap(~gender) + coord_flip() + theme_apa() + xlab("Prosociality") + 
+  theme(axis.text.x=element_blank(), axis.ticks.x=element_blank())
 
 #How does absolute prosociality vary by country?
 
@@ -921,72 +922,31 @@ df.world$oecd <- factor(df.world$oecd, levels = c(0,1), labels = c("oecd", "not 
 
 ```
 
-# Create map plots
+# Map plots - preferences and behaviours
 
 ```{r country-plots, echo=FALSE, fig.align="center", fig.width=10, fig.height=8}
 
-# create a map figure for each outcome
+# create function plotting preferences
 
-world.posrecip <- ggplot(df.world, aes(long, lat, group = group)) +
-  geom_polygon(aes(fill = posrecip), color = "white", size = .1) +
+global_pref_map <- function(v, name) {
+  ggplot(df.world, aes(long, lat, group = group)) +
+  geom_polygon(aes(fill = v), color = "white", size = .1) +
   scale_fill_gradient2(low = neg.corr.col, mid = "white", high = pos.corr.col, midpoint = 0, na.value = "#ECECEC", name = expression(beta)) +
-  theme_void() +
-  draw_plot_label("Positive reciprocity", x = -180, y = -10, hjust = 0, vjust = 0, angle = 90, size = axtitle, fontface = "plain")
+  theme_apa() +
+  theme(axis.text.x=element_blank(), axis.ticks.x=element_blank(), axis.text.y=element_blank(), axis.ticks.y=element_blank(), axis.title.x=element_blank(), axis.title.y = element_blank()) +
+  draw_plot_label(name, x = -180, y = -30, hjust = 0, vjust = 0, angle = 90, size = axtitle, fontface = "plain")
+  
+}
 
-# europe.posrecip <- ggplot(df.europe, aes(long, lat, group = group)) +
-#   geom_polygon(aes(fill = distancing), color = "white", size = .1) +
-#   scale_fill_gradientn(colours = col2(200), limits = c(-.28, .28), breaks = c(-0.2, 0, 0.2), na.value = "#ECECEC", name = expression(beta)) +
-#   theme_void() +
-#   guides(fill = guide_colorbar(title.hjust = 0.05)) + 
-#   theme(legend.text = element_text(size = axtext),
-#         legend.title = element_text(size = axtitle))
-
-world.negrecip <- ggplot(df.world, aes(long, lat, group = group)) +
-  geom_polygon(aes(fill = negrecip), color = "white", size = .1) +
-  scale_fill_gradient2(low = neg.corr.col, mid = "white", high = pos.corr.col, midpoint = 0, na.value = "#ECECEC", name = expression(beta)) +
-  theme_void() +
-  draw_plot_label("Negative reciprocity", x = -180, y = -20, hjust = 0, vjust = 0, angle = 90, size = axtitle, fontface = "plain")
-
-# europe.negrecip <- ggplot(df.europe, aes(long, lat, group = group)) +
-#   geom_polygon(aes(fill = negrecip), color = "white", size = .1) +
-#   scale_fill_gradientn(colours = col2(200), limits = c(-.28, .28), breaks = c(-0.2, 0, 0.2), na.value = "#ECECEC", name = expression(beta)) +
-#   theme_void() +
-#   guides(fill = guide_colorbar(title.hjust = 0.05)) + 
-#   theme(legend.text = element_text(size = axtext),
-#         legend.title = element_text(size = axtitle))
-
-world.altruism <- ggplot(df.world, aes(long, lat, group = group)) +
-  geom_polygon(aes(fill = altruism), color = "white", size = .1) +
-  scale_fill_gradient2(low = neg.corr.col, mid = "white", high = pos.corr.col, midpoint = 0, na.value = "#ECECEC", name = expression(beta)) +
-  theme_void() +
-  draw_plot_label("Altruism", x = -180, y = -35, hjust = 0, vjust = 0, angle = 90, size = axtitle, fontface = "plain")
-
-# europe.inter <- ggplot(df.europe, aes(long, lat, group = group)) +
-#   geom_polygon(aes(fill = altruism), color = "white", size = .1) +
-#   scale_fill_gradientn(colours = col2(200), limits = c(-.28, .28), breaks = c(-0.2, 0, 0.2), na.value = "#ECECEC", name = expression(beta)) +
-#   theme_void() +
-#   guides(fill = guide_colorbar(title.hjust = 0.05)) + 
-#   theme(legend.text = element_text(size = axtext),
-#         legend.title = element_text(size = axtitle))
-
-world.trust <- ggplot(df.world, aes(long, lat, group = group)) +
-  geom_polygon(aes(fill = trust), color = "white", size = .1) +
-  scale_fill_gradient2(low = neg.corr.col, mid = "white", high = pos.corr.col, midpoint = 0, na.value = "#ECECEC", name = expression(beta)) +
-  theme_void() +
-  draw_plot_label("Trust", x = -180, y = -35, hjust = 0, vjust = 0, angle = 90, size = axtitle, fontface = "plain")
+global_pref_map(df.world$posrecip, "Positive Reciprocity")
+global_pref_map(df.world$negrecip, "Negative Reciprocity")
+global_pref_map(df.world$altruism, "Altruism")
+global_pref_map(df.world$posrecip, "Trust")
 
 
-world.prosocial <- ggplot(df.world, aes(long, lat, group = group)) +
-  geom_polygon(aes(fill = prosocial_contrib), color = "white", size = .1) +
-  scale_fill_gradient2(low = neg.corr.col, mid = "white", high = pos.corr.col, midpoint = 0, na.value = "#ECECEC", name = expression(beta)) +
-  theme_void() +
-  draw_plot_label("Prosociality", x = -180, y = -35, hjust = 0, vjust = 0, angle = 90, size = axtitle, fontface = "plain")
-
-print(world.prosocial)
-
-plots.map <- plot_grid(world.posrecip, world.negrecip, world.altruism, world.trust,
-                       align = "v", nrow = 3, labels = "auto", label_size = axtitle-4)
-
-print(plots.map)
+# plots.map <- plot_grid(world.posrecip, world.negrecip, world.altruism, world.trust,
+#                        align = "v", nrow = 3, labels = "auto", label_size = axtitle-4)
+# 
+# print(plots.map)
 
 ```
