@@ -85,7 +85,7 @@ df <- df %>%
 df <- df %>% 
   mutate(gender = factor(gender,
                          levels = c(0,1),
-                         labels = c("male", "female"))) %>% 
+                         labels = c("Male", "Female"))) %>% 
   add_column(id = 1:nrow(df))
 
 contrasts(df$gender) <- contr.sum(length(levels(df$gender)))
@@ -166,9 +166,9 @@ oecd.code <- countrycode(oecd, 'country.name', 'iso3c')
 #     } else {stop('not found 1 or 0 matches')}
 #   }
 #   
-#   if(df$gender[r] == "male") {
+#   if(df$gender[r] == "Male") {
 #     df$age.adj[r] <- df$age.r[r] / df$`le.male.(years)`[r]
-#   } else if (df$gender[r] == "female") {
+#   } else if (df$gender[r] == "Female") {
 #     df$age.adj[r] <- df$age.r[r] / df$`le.female.(years)`[r]
 #   }
 # }
@@ -364,8 +364,8 @@ df$prosocial_wgt_l <- df$prosocial_load * df$wgt
 
 ```{r descriptives, eval = FALSE, echo=FALSE, include=FALSE}
 
-sum((df$gender) == "male")
-sum((df$gender) == "female")
+sum((df$gender) == "Male")
+sum((df$gender) == "Female")
 
 #summary descriptives
 v <- df %>% select(c("subj_math_skills.r", "age.r", "financial_wellbeing.r", "physical_wellbeing.r", "trust",
@@ -378,16 +378,19 @@ df %>% ggplot(aes(x = age.r)) + geom_histogram(colour="black", fill="grey", binw
   scale_x_continuous(breaks = seq(15, 73, by = 5))  + theme_apa() 
 
 # Histogram of age distribution Positive Reciprocity
-df %>% ggplot(aes(x = posrecip)) + geom_histogram(colour="black", fill="grey", binwidth = 0.1) + xlab("Age") + ylab("Count") + theme_apa() 
+p1 <- df %>% ggplot(aes(x = posrecip)) + geom_histogram(colour="black", fill="grey", binwidth = 0.1) + xlab("Positive reciprocity") + ylab("Count") + theme_apa()
 
 # Histogram of age distribution Negative Reciprocity
-df %>% ggplot(aes(x = negrecip)) + geom_histogram(colour="black", fill="grey", binwidth = 0.1) + xlab("Age") + ylab("Count") + theme_apa() 
+p2 <- df %>% ggplot(aes(x = negrecip)) + geom_histogram(colour="black", fill="grey", binwidth = 0.1) + xlab("Negative Reciprocity") + ylab("Count") + theme_apa() 
 
 # Histogram of age distribution Altruism
-df %>% ggplot(aes(x = altruism)) + geom_histogram(colour="black", fill="grey", binwidth = 0.1) + xlab("Age") + ylab("Count") + theme_apa() 
+p3 <- df %>% ggplot(aes(x = altruism)) + geom_histogram(colour="black", fill="grey", binwidth = 0.1) + xlab("Altruism") + ylab("Count") + theme_apa() 
 
 # Histogram of age distribution Trust
-df %>% ggplot(aes(x = trust)) + geom_histogram(colour="black", fill="grey", binwidth = 0.1) + xlab("Age") + ylab("Count") + theme_apa() 
+p4 <- df %>% ggplot(aes(x = trust)) + geom_histogram(colour="black", fill="grey", binwidth = 0.1) + xlab("Trust") + ylab("Count") + theme_apa() 
+
+d <- grid.arrange(p1, p2, p3, p4)
+
 
 # Boxplot of age distribution by country
 ggplot(df, aes(x=reorder(country, age.r, na.rm = TRUE), y=age.r)) + geom_boxplot() + ylab("Age") + xlab("") +
@@ -425,7 +428,13 @@ scatter_plot(df$prosocial_contrib, df$financial_wellbeing) + xlab("Prosociality"
 scatter_plot(df$prosocial_contrib, df$physical_wellbeing) + xlab("Prosociality") + ylab("Physical wellbeing")
 scatter_plot(df$prosocial_contrib, df$subj_math_skills) + xlab("Prosociality") + ylab("Subjective maths skills")
 
+ggplot(df,aes(x=age.r,y=prosocial_contrib,col=gender)) + geom_smooth(alpha=0.2, method = lm) + facet_wrap(~gender) + theme_apa() + xlab("Age") + ylab("Prosociality") + geom_point(alpha = 0.1)
+
+ggplot(df,aes(x=prosocial_contrib)) + geom_boxplot(alpha=0.2) + theme_apa() + facet_wrap(~gender) + coord_flip()
+
 #How does absolute prosociality vary by country?
+
+
 
 
 ```
