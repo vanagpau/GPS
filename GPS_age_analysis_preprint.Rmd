@@ -427,15 +427,15 @@ scatter_plot(df$negrecip) + ylab("Negative Reciprocity")
 
 # Create preference data-frame
 
-# df.pref <- as_tibble(df) %>% 
-#   rename(pref_posrecip = "posrecip") %>% 
-#   rename(pref_altruism = "altruism") %>% 
-#   rename(pref_trust = "trust") 
-# 
-# df.pref <-  df.pref %>% 
-#   pivot_longer(cols = starts_with("pref"), names_to = "pref", names_prefix = "pref_", values_to = "prosociality")
+df.pref <- as_tibble(df) %>%
+  rename(pref_posrecip = "posrecip") %>%
+  rename(pref_altruism = "altruism") %>%
+  rename(pref_trust = "trust")
 
-# Run PREFERENCES QUADRATIC model
+df.pref <-  df.pref %>%
+  pivot_longer(cols = starts_with("pref"), names_to = "pref", names_prefix = "pref_", values_to = "prosociality")
+
+# Run PREFERENCES QUADRATIC model with INTERACTION TERM
 
 # model.quad.pref <- lmer(prosociality ~ gender + financial_wellbeing + physical_wellbeing + subj_math_skills + poly(age,2)*pref +
 #                      (1 | id:country) + (1 | country) + #(0 + gender | country) +
@@ -443,10 +443,11 @@ scatter_plot(df$negrecip) + ylab("Negative Reciprocity")
 #                      (0 + age | country), data = df.pref, control = lmerControl(optimizer="bobyqa", optCtrl=list(maxfun=2e5)))
 # save(model.quad.pref, file = paste0("output/Preferences_quadratic_model.RData"))
 # 
-# model.lin.pref <- lmer(prosociality ~ gender + financial_wellbeing + physical_wellbeing + subj_math_skills + age*pref +
-#                      (1 | id:country) + (1 | country) + #(0 + gender | country) +
-#                      (0 + financial_wellbeing | country) + (0 + physical_wellbeing | country) + (0 + subj_math_skills | country) +
-#                      (0 + age | country), data = df.pref, control = lmerControl(optimizer="bobyqa", optCtrl=list(maxfun=2e5)))
+
+# Run PREFERENCES LINEAR model with INTERACTION TERM
+
+model.lin.pref <- lmer(prosociality ~ gender + financial_wellbeing + physical_wellbeing + subj_math_skills + age*pref + (1 | country), data = df.pref, control = lmerControl(optimizer="bobyqa", optCtrl=list(maxfun=2e5)))
+
 # save(model.lin.pref, file = paste0("output/Preferences_linear_model.RData"))
 
 #load pre-existing model objects for PREFERENCES
@@ -491,7 +492,7 @@ kable(r.lin.pref,
       caption = paste0("Linear mixed-effects model predicting prosocial preferences")) %>%
   kable_styling()
 
-# Create data-frame of for behaviours modelling
+# Create data-frame of for BEHAVIOURS modelling
 
 # df.behav <-  as_tibble(df) %>%
 #   rename(behav_donate = "WP108") %>%
@@ -502,6 +503,9 @@ kable(r.lin.pref,
 # 
 # df.behav <-  df.behav %>% pivot_longer(cols = starts_with("behav"), names_to = "behav", names_prefix = "behav_", values_to = "prosociality")
 # 
+
+# Run model of BEHAVIOURS with interaction term = model.quad.behaviours
+
 # model.quad.behav <- glmer (prosociality ~ gender + financial_wellbeing + physical_wellbeing + subj_math_skills + poly(age,2)*behav +
 #                      (1 | id:country) + (1 | country) + #(0 + gender | country) +
 #                      (0 + financial_wellbeing | country) + (0 + physical_wellbeing | country) +
@@ -558,7 +562,7 @@ kable(r.lin.behav,
 
 ```
 
-## Plotting and modelling each PREFERENCE
+## Plotting and modelling each individual PREFERENCE
 
 ```{r pref-models-plots, eval = FALSE, echo=FALSE, message=FALSE, warning=FALSE, results='asis'}
 
@@ -672,14 +676,14 @@ for (v in 1:length(prefs)) {
 
 ```
 
-## Plotting and modelling each BEHAVIOUR
+## Plotting and modelling each individual BEHAVIOUR
 
 ```{r behav-models-plots, eval=TRUE, echo=FALSE, message=FALSE, warning=FALSE, results='asis'}
 
 #Overall effects
 
-#for (v in 1:length(behavs)) {
-for (v in 1:1) {
+for (v in 1:length(behavs)) {
+#for (v in 1:1) {
   behav <- behavs[v]
   behav.lab <- behav.labs[v]
   
@@ -690,15 +694,17 @@ for (v in 1:1) {
   
   # For SPEED of plotting cut out the model if required
   
-  # model.quad[v] <- glmer(outcome ~ gender + financial_wellbeing + physical_wellbeing + subj_math_skills + poly(age,2) +
+  # model.quad <- glmer(outcome ~ gender + financial_wellbeing + physical_wellbeing + subj_math_skills + poly(age,2) +
   #                      (1 | country) + #(0 + gender | country) +
   #                      (0 + financial_wellbeing | country) + (0 + physical_wellbeing | country) + (0 + subj_math_skills | country) +
   #                      (0 + age | country), data = df.mod, family = "binomial", control = glmerControl(optimizer="bobyqa", optCtrl=list(maxfun=2e5)))
   
-    model.quad[v] <- glmer(outcome ~ gender + financial_wellbeing + physical_wellbeing + subj_math_skills + poly(age,2) + (1 | country), data = df.mod, family = "binomial", control = glmerControl(optimizer="bobyqa", optCtrl=list(maxfun=2e5)))
+  # 
+  # # save the model
+  # save(model.quad, file = paste0("output/",behav.lab, "_quadratic_model.RData"))
   
-  # save the model
-  save(model.quad[v], file = paste0("output/",behav.lab, "_quadratic_model.RData"))
+  #load previously created model
+  load(file = paste0("output/",behav.lab, "_quadratic_model.RData"))
 
   #extract results
   results.quad <- model_parameters(model.quad, effects = "fixed")
