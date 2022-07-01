@@ -448,13 +448,13 @@ ggplot(df,aes(x=prosocial_contrib, col=gender)) + geom_boxplot(alpha=0.2) + them
 
 # Create preference data-frame
 
-df.pref <- as_tibble(df) %>%
-  rename(pref_posrecip = "posrecip") %>%
-  rename(pref_altruism = "altruism") %>%
-  rename(pref_trust = "trust")
-
-df.pref <-  df.pref %>%
-  pivot_longer(cols = starts_with("pref"), names_to = "pref", names_prefix = "pref_", values_to = "prosociality")
+# df.pref <- as_tibble(df) %>%
+#   rename(pref_posrecip = "posrecip") %>%
+#   rename(pref_altruism = "altruism") %>%
+#   rename(pref_trust = "trust")
+# 
+# df.pref <-  df.pref %>%
+#   pivot_longer(cols = starts_with("pref"), names_to = "pref", names_prefix = "pref_", values_to = "prosociality")
 
 # Run PREFERENCES QUADRATIC model with INTERACTION TERM
 
@@ -524,52 +524,37 @@ kable(r.lin.pref,
 
 # Create data-frame of for BEHAVIOURS modelling
 
-df.behav <-  as_tibble(df) %>%
-  rename(behav_donate = "WP108") %>%
-  rename(behav_volunteer = "WP109") %>%
-  rename(behav_help = "WP110")
-
-# Create prosociality output variable
-
-df.behav <-  df.behav %>% pivot_longer(cols = starts_with("behav"), names_to = "behav", names_prefix = "behav_", values_to = "prosociality")
-
-
-# Run model of BEHAVIOURS with interaction term = model.quad.behaviours
-
-tic <- Sys.time()
-model.quad.behav <- glmer (prosociality ~ gender + financial_wellbeing + physical_wellbeing + subj_math_skills + poly(age,2)*behav +
-                             #(1 | id:country) + 
-                             (1 | country) +
-                             #(0 + gender | country) +
-                             #(0 + financial_wellbeing | country) + 
-                             #(0 + physical_wellbeing | country) +
-                             #(0 + subj_math_skills | country) +
-                             #(0 + age | country),
-                     data = df.behav, family = "binomial", control = glmerControl(optimizer="bobyqa", optCtrl=list(maxfun=2e5))
-                            )
-toc <-  Sys.time()
-toc-tic
-
-#play version
-tic <- Sys.time()
-model.quad.behav <- glmer (prosociality ~ poly(age,2)*behav + gender + financial_wellbeing + physical_wellbeing + subj_math_skills +
-                             #(1 | id:country) + 
-                             (1 | country) +
-                             #(0 + gender | country) +
-                             (0 + financial_wellbeing | country) + 
-                             (0 + physical_wellbeing | country) +
-                             (0 + subj_math_skills | country) +
-                             (0 + age | country),
-                     data = df.behav, 
-                     family = "binomial", 
-                     nAGQ = 0,
-                     control = glmerControl(optimizer="bobyqa", optCtrl=list(maxfun=2e5))
-                            )
-toc <-  Sys.time()
-toc-tic
-
-
-save(model.quad.behav, file = paste0("output/Behaviours_quadratic_model.RData"))
+# df.behav <-  as_tibble(df) %>%
+#   rename(behav_donate = "WP108") %>%
+#   rename(behav_volunteer = "WP109") %>%
+#   rename(behav_help = "WP110")
+# 
+# # Create prosociality output variable
+# 
+# df.behav <-  df.behav %>% pivot_longer(cols = starts_with("behav"), names_to = "behav", names_prefix = "behav_", values_to = "prosociality")
+# 
+# 
+# # Run model of BEHAVIOURS with interaction term = model.quad.behaviours
+# 
+# tic <- Sys.time()
+# model.quad.behav <- glmer (prosociality ~ poly(age,2)*behav + gender + financial_wellbeing + physical_wellbeing + subj_math_skills +
+#                              #(1 | id:country) + 
+#                              (1 | country) +
+#                              #(0 + gender | country) +
+#                              (0 + financial_wellbeing | country) + 
+#                              (0 + physical_wellbeing | country) +
+#                              (0 + subj_math_skills | country) +
+#                              (0 + age | country),
+#                      data = df.behav, 
+#                      family = "binomial", 
+#                      nAGQ = 0,
+#                      control = glmerControl(optimizer="nloptwrap", optCtrl=list(maxfun=2e5))
+#                             )
+# toc <-  Sys.time()
+# toc-tic
+# 
+# 
+# save(model.quad.behav, file = paste0("output/Behaviours_quadratic_model.RData"))
 
 # model.lin.behav <- glmer(prosociality ~ gender + financial_wellbeing + physical_wellbeing + subj_math_skills + age*behav +
 #                      (1 | id:country) + (1 | country) + #(0 + gender | country) +
@@ -577,7 +562,7 @@ save(model.quad.behav, file = paste0("output/Behaviours_quadratic_model.RData"))
 #                      (0 + age | country), data = df.behav, family = "binomial", control = glmerControl(optimizer="bobyqa", optCtrl=list(maxfun=2e5)))
 # save(model.lin.behav, file = paste0("output/Behaviours_linear_model.RData"))
 
-#load(paste0("output/Behaviours_quadratic_model.RData"))
+load(paste0("output/Behaviours_quadratic_model.RData"))
 load(paste0("output/Behaviours_linear_model.RData"))
 
 results.quad.behav <- model_parameters(model.quad.behav, exponentiate = T, effects = "fixed")
