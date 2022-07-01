@@ -858,7 +858,7 @@ for (c in country.results$isocode) {
   
   cdf <- subset(df, isocode == c) # select rows from that country
   
-  #calculate basic mean for each DV and add to country.results
+  #calculate basic mean for each DV per country and add to country.results
   country.results$posrecip.mean[country.results.p$isocode == c] = c(mean(cdf$posrecip, na.rm = TRUE))
   country.results$negrecip.mean[country.results.p$isocode == c] = c(mean(cdf$negrecip, na.rm = TRUE))
   country.results$altruism.mean[country.results.p$isocode == c] = c(mean(cdf$altruism, na.rm = TRUE))
@@ -866,38 +866,32 @@ for (c in country.results$isocode) {
   country.results$prosocial_contrib.mean[country.results.p$isocode == c] =
     c(mean(cdf$prosocial_contrib, na.rm = TRUE))
   
-      # standardise variables for modelling
+  # standardise variables for modelling
   cdf[,c("age", "posrecip", "negrecip", "altruism", "trust", "prosocial_contrib")] <- scale(cdf[,c("age", "posrecip", "negrecip", "altruism", "trust", "prosocial_contrib")])
   
-    # run linear model for each outcome & extract parameters
+  # run linear model for each outcome & extract parameters
   cntry.p <- model_parameters(lm(posrecip ~ gender + age, data = cdf), standardize = "refit")
   cntry.n <- model_parameters(lm(negrecip ~ gender + age, data = cdf), standardize = "refit")
   cntry.a <- model_parameters(lm(altruism ~ gender + age, data = cdf), standardize = "refit")
   cntry.t <- model_parameters(lm(trust ~ gender + age, data = cdf), standardize = "refit")
   cntry.pr <- model_parameters(lm(prosocial_contrib ~ gender + age, data = cdf), standardize = "refit")
+  
+  #add slope coefficients to dataframe
   country.results$posrecip.age[country.results$isocode == c] = tail(cntry.p$Coefficient,1)
   country.results$negrecip.age[country.results$isocode == c] = tail(cntry.n$Coefficient,1)
   country.results$altruism.age[country.results$isocode == c] = tail(cntry.a$Coefficient,1)
   country.results$trust.age[country.results$isocode == c] = tail(cntry.t$Coefficient,1)
   country.results$prosocial_contrib.age[country.results$isocode == c] = tail(cntry.pr$Coefficient,1)
-  # country.results[country.results$isocode == c, 3:7] = c(tail(cntry.p$Coefficient,1),
-  #                                                     tail(cntry.n$Coefficient,1), 
-  #                                                     tail(cntry.a$Coefficient,1),
-  #                                                     tail(cntry.t$Coefficient,1),
-  #                                                     tail(cntry.pr$Coefficient,1))
+  
+  #add p values (I think?)
   country.results.p$posrecip.age[country.results$isocode == c] = tail(cntry.p$p,1)
   country.results.p$negrecip.age[country.results$isocode == c] = tail(cntry.n$p,1)
   country.results.p$altruism.age[country.results$isocode == c] = tail(cntry.a$p,1)
   country.results.p$trust.age[country.results$isocode == c] = tail(cntry.t$p,1)
   country.results.p$prosocial_contrib.age[country.results$isocode == c] = tail(cntry.pr$p,1)
-  # country.results.p[country.results.p$isocode == c, 3:7] = c(tail(cntry.p$p,1),
-  #                                                         tail(cntry.n$p,1), 
-  #                                                         tail(cntry.a$p,1), 
-  #                                                         tail(cntry.t$p,1),
-  #                                                         tail(cntry.pr$p,1))
+  #add number of observations per country
   country.results$n[country.results$isocode == c] = nrow(cdf)
   
-
 }
 
 # create data for map
@@ -953,23 +947,41 @@ global_pref_map <- function(v, name) {
   scale_fill_gradient2(low = neg.corr.col, mid = "white", high = pos.corr.col, midpoint = 0, na.value = "#ECECEC", name = expression(beta)) +
   theme_apa() +
   theme(axis.text.x=element_blank(), axis.ticks.x=element_blank(), axis.text.y=element_blank(), axis.ticks.y=element_blank(), axis.title.x=element_blank(), axis.title.y = element_blank()) +
-  draw_plot_label(name, x = -180, y = -30, hjust = 0, vjust = 0, angle = 90, size = 15, fontface = "plain")
+  draw_plot_label(name, x = -180, y = -30, hjust = 0, vjust = 0, angle = 90, size = 17, fontface = "plain")
   
 }
 
 #model outputs DV~Age
-global_pref_map(df.world$posrecip.age, "Positive Reciprocity ~ Age")
-global_pref_map(df.world$negrecip.age, "Negative Reciprocity ~ Age")
-global_pref_map(df.world$altruism.age, "Altruism ~ Age")
-global_pref_map(df.world$posrecip.age, "Trust ~ Age")
+p1 <- global_pref_map(df.world$posrecip.age, "Positive Reciprocity ~ Age")
+p2 <- global_pref_map(df.world$negrecip.age, "Negative Reciprocity ~ Age")
+p3 <- global_pref_map(df.world$altruism.age, "Altruism ~ Age")
+p4 <- global_pref_map(df.world$trust.age, "Trust ~ Age")
 global_pref_map(df.world$prosocial_contrib.age, "Prosociality ~ Age")
 
+#grid arrange
+grid.arrange(p1, p2, p3, p4)
+
 #Basic means around the world
-global_pref_map(df.world$posrecip.mean, "Positive Reciprocity")
-global_pref_map(df.world$negrecip.mean, "Negative Reciprocity")
-global_pref_map(df.world$altruism.mean, "Altruism")
-global_pref_map(df.world$posrecip.mean, "Trust")
+p1 <- global_pref_map(df.world$posrecip.mean, "Positive Reciprocity")
+p2 <- global_pref_map(df.world$negrecip.mean, "Negative Reciprocity")
+p3 <- global_pref_map(df.world$altruism.mean, "Altruism")
+p4 <- global_pref_map(df.world$trust.mean, "Trust")
 global_pref_map(df.world$prosocial_contrib.mean, "Prosociality")
+
+
+
+# Do it by facet wrap
+df.long <- pivot_longer(df.world, cols = c(posrecip.mean, negrecip.mean, altruism.mean, trust.mean), names_to = "pref", values_to = "mean")
+df.long$pref <- factor(df.long$pref, labels = c("Altruism", "NegativeReciprocity", "PositiveReciprocity", "Trust"))
+
+
+ggplot(df.long, aes(long, lat, group = group)) +
+  geom_polygon(aes(fill = mean), color = "white", size = .1) +
+  scale_fill_gradient2(low = neg.corr.col, mid = "white", high = pos.corr.col, midpoint = 0, na.value = "#ECECEC", name = expression(beta)) +
+  theme_apa(legend.pos = "bottom", facet.title.size = 12) +
+  theme(axis.text.x=element_blank(), axis.ticks.x=element_blank(), axis.text.y=element_blank(), axis.ticks.y=element_blank(), axis.title.x=element_blank(), axis.title.y = element_blank()) +
+  facet_wrap(~pref, labeller = label_value)
+
 
 
 # plots.map <- plot_grid(world.posrecip, world.negrecip, world.altruism, world.trust,
