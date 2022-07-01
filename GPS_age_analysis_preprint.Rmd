@@ -148,7 +148,7 @@ df <- left_join(df, le, by = "isocode")
 # OECD or not?
 oecd <- c("Austria", "Australia", "Belgium", "Canada", "Chile", "Colombia", "Costa Rica", "Czech Republic", "Denmark", "Estonia", "Finland", "France", "Germany", "Greece", "Hungary", "Iceland", "Ireland", "Israel", "Italy", "Japan", "Korea", "Latvia", "Lithuania", "Luxembourg", "Mexico", "the Netherlands", "New Zealand", "Norway", "Poland", "Portugal", "Slovak Republic", "Slovenia", "Spain", "Sweden", "Switzerland", "Turkey", "the United Kingdom", "United States") # from https://www.oecd.org/newsroom/oecd-welcomes-costa-rica-as-its-38th-member.htm
 
-oecd.code <- countrycode(oecd, 'country.name', 'iso3c')
+oecd.isocode <- countrycode(oecd, 'country.name', 'iso3c')
 
 # add adjusted age and OECD index to main dataframe
 
@@ -159,9 +159,9 @@ oecd.code <- countrycode(oecd, 'country.name', 'iso3c')
 #   if (is.na(df$isocode[r])) {
 #     df$oecd[r] <- 0
 #   } else {
-#     if (sum(str_detect(oecd.code, df$isocode[r])) == 0) {
+#     if (sum(str_detect(oecd.isocode, df$isocode[r])) == 0) {
 #       df$oecd[r] <- 0
-#     } else if (sum(str_detect(oecd.code, df$isocode[r])) == 1) {
+#     } else if (sum(str_detect(oecd.isocode, df$isocode[r])) == 1) {
 #       df$oecd[r] <- 1
 #     } else {stop('not found 1 or 0 matches')}
 #   }
@@ -845,72 +845,93 @@ cntry.list <- df %>%
 cntry.list <- unique(cntry.list)
 
 # create a dataframe with the country information and columns of NA to fill in below
-countrycols <- c("code", "region", "posrecip", "negrecip", "altruism", "trust", "prosocial_contrib", "n")
-# country.results <- data.frame(cntry.list$ISO3, cntry.list$Map.Name, matrix(data = NA, nrow = nrow(cntry.list), ncol = (length(countrycols) - 2)))
+countrycols <- c("isocode", "region", "n")
+
+# "posrecip~age", "negrecip~age", "altruism~age", "trust~age", "prosocial_contrib~age",
+
 country.results <- data.frame(cntry.list$isocode, cntry.list$country, matrix(data = NA, nrow = length(cntry.list), ncol = (length(countrycols) - 2)))
 names(country.results) <- countrycols
-country.results.p <- country.results[,1:6]
+country.results.p <- country.results
 
 # loop over each country
-for (c in country.results$code) {
+for (c in country.results$isocode) {
   
   cdf <- subset(df, isocode == c) # select rows from that country
   
-  # standardise variables
+  #calculate basic mean for each DV and add to country.results
+  country.results$posrecip.mean[country.results.p$isocode == c] = c(mean(cdf$posrecip, na.rm = TRUE))
+  country.results$negrecip.mean[country.results.p$isocode == c] = c(mean(cdf$negrecip, na.rm = TRUE))
+  country.results$altruism.mean[country.results.p$isocode == c] = c(mean(cdf$altruism, na.rm = TRUE))
+  country.results$trust.mean[country.results.p$isocode == c] = c(mean(cdf$trust, na.rm = TRUE))
+  country.results$prosocial_contrib.mean[country.results.p$isocode == c] =
+    c(mean(cdf$prosocial_contrib, na.rm = TRUE))
+  
+      # standardise variables for modelling
   cdf[,c("age", "posrecip", "negrecip", "altruism", "trust", "prosocial_contrib")] <- scale(cdf[,c("age", "posrecip", "negrecip", "altruism", "trust", "prosocial_contrib")])
   
-  # run linear model for each outcome & extract parameters
+    # run linear model for each outcome & extract parameters
   cntry.p <- model_parameters(lm(posrecip ~ gender + age, data = cdf), standardize = "refit")
   cntry.n <- model_parameters(lm(negrecip ~ gender + age, data = cdf), standardize = "refit")
   cntry.a <- model_parameters(lm(altruism ~ gender + age, data = cdf), standardize = "refit")
   cntry.t <- model_parameters(lm(trust ~ gender + age, data = cdf), standardize = "refit")
   cntry.pr <- model_parameters(lm(prosocial_contrib ~ gender + age, data = cdf), standardize = "refit")
-  country.results[country.results$code == c, 3:7] = c(tail(cntry.p$Coefficient,1),
-                                                      tail(cntry.n$Coefficient,1), 
-                                                      tail(cntry.a$Coefficient,1),
-                                                      tail(cntry.t$Coefficient,1),
-                                                      tail(cntry.pr$Coefficient,1))
-  country.results.p[country.results.p$code == c, 3:7] = c(tail(cntry.p$p,1),
-                                                          tail(cntry.n$p,1), 
-                                                          tail(cntry.a$p,1), 
-                                                          tail(cntry.t$p,1),
-                                                          tail(cntry.pr$p,1))
-  country.results$n[country.results$code == c] = nrow(cdf)
+  country.results$posrecip.age[country.results$isocode == c] = tail(cntry.p$Coefficient,1)
+  country.results$negrecip.age[country.results$isocode == c] = tail(cntry.n$Coefficient,1)
+  country.results$altruism.age[country.results$isocode == c] = tail(cntry.a$Coefficient,1)
+  country.results$trust.age[country.results$isocode == c] = tail(cntry.t$Coefficient,1)
+  country.results$prosocial_contrib.age[country.results$isocode == c] = tail(cntry.pr$Coefficient,1)
+  # country.results[country.results$isocode == c, 3:7] = c(tail(cntry.p$Coefficient,1),
+  #                                                     tail(cntry.n$Coefficient,1), 
+  #                                                     tail(cntry.a$Coefficient,1),
+  #                                                     tail(cntry.t$Coefficient,1),
+  #                                                     tail(cntry.pr$Coefficient,1))
+  country.results.p$posrecip.age[country.results$isocode == c] = tail(cntry.p$p,1)
+  country.results.p$negrecip.age[country.results$isocode == c] = tail(cntry.n$p,1)
+  country.results.p$altruism.age[country.results$isocode == c] = tail(cntry.a$p,1)
+  country.results.p$trust.age[country.results$isocode == c] = tail(cntry.t$p,1)
+  country.results.p$prosocial_contrib.age[country.results$isocode == c] = tail(cntry.pr$p,1)
+  # country.results.p[country.results.p$isocode == c, 3:7] = c(tail(cntry.p$p,1),
+  #                                                         tail(cntry.n$p,1), 
+  #                                                         tail(cntry.a$p,1), 
+  #                                                         tail(cntry.t$p,1),
+  #                                                         tail(cntry.pr$p,1))
+  country.results$n[country.results$isocode == c] = nrow(cdf)
   
-}
 
-country.results.all <- country.results
+}
 
 # create data for map
 world_map <- map_data("world") %>%
   subset(region != "Antarctica")
 
 #map world_map countries to ISO codes
-world_map$code <- countrycode(world_map$region, 'country.name', 'iso3c')
+world_map$isocode <- countrycode(world_map$region, 'country.name', 'iso3c')
 
 # # # select countries in dataset
 # continents <- df %>% 
 #   select("isocode", "Continent") %>% 
 #   distinct()
-# names(continents) <- c("code", "continent")
-# continents$code <- as.character(continents$code)
+# names(continents) <- c("isocode", "continent")
+# continents$isocode <- as.character(continents$isocode)
 # 
 # # combine country information with results & add European countries no data collected in to show blank on map
-# continents <- left_join(continents, country.results, by = "code") %>% 
+# continents <- left_join(continents, country.results, by = "isocode") %>% 
 #   add_row(region = c("Cyprus", "Czech Republic", "Estonia", "Lithuania", "Luxembourg", "Malta", "Portugal", "Belarus", "Moldova", "Slovenia", "Bosnia and Herzegovina", "Montenegro", "Kosovo", "Albania", "Bulgaria"), continent = rep("Europe", 15))
-df.world <- left_join(world_map %>% select(-region), country.results, by = "code")
+df.world <- left_join(world_map %>% select(-region), country.results, by = "isocode")
+
+
 # df.europe <- subset(df.world, continent == "Europe" & region != "Russia")
 
-# add OECD index to map dataframe - GENDER file code
+# add OECD index to map dataframe
 df.world$oecd <- NA
 
 for (r in 1:nrow(df.world)) {
-  if (is.na(df.world$code[r])) {
+  if (is.na(df.world$isocode[r])) {
     df.world$oecd[r] <- 0
   } else {
-    if (sum(str_detect(oecd.code, df.world$code[r])) == 0) {
+    if (sum(str_detect(oecd.isocode, df.world$isocode[r])) == 0) {
       df.world$oecd[r] <- 0
-    } else if (sum(str_detect(oecd.code, df.world$code[r])) == 1) {
+    } else if (sum(str_detect(oecd.isocode, df.world$isocode[r])) == 1) {
       df.world$oecd[r] <- 1
     } else {stop('not found 1 or 0 matches')}
   }
@@ -932,15 +953,23 @@ global_pref_map <- function(v, name) {
   scale_fill_gradient2(low = neg.corr.col, mid = "white", high = pos.corr.col, midpoint = 0, na.value = "#ECECEC", name = expression(beta)) +
   theme_apa() +
   theme(axis.text.x=element_blank(), axis.ticks.x=element_blank(), axis.text.y=element_blank(), axis.ticks.y=element_blank(), axis.title.x=element_blank(), axis.title.y = element_blank()) +
-  draw_plot_label(name, x = -180, y = -30, hjust = 0, vjust = 0, angle = 90, size = axtitle, fontface = "plain")
+  draw_plot_label(name, x = -180, y = -30, hjust = 0, vjust = 0, angle = 90, size = 15, fontface = "plain")
   
 }
 
-global_pref_map(df.world$posrecip, "Positive Reciprocity")
-global_pref_map(df.world$negrecip, "Negative Reciprocity")
-global_pref_map(df.world$altruism, "Altruism")
-global_pref_map(df.world$posrecip, "Trust")
-global_pref_map(df.world, "Trust")
+#model outputs DV~Age
+global_pref_map(df.world$posrecip.age, "Positive Reciprocity ~ Age")
+global_pref_map(df.world$negrecip.age, "Negative Reciprocity ~ Age")
+global_pref_map(df.world$altruism.age, "Altruism ~ Age")
+global_pref_map(df.world$posrecip.age, "Trust ~ Age")
+global_pref_map(df.world$prosocial_contrib.age, "Prosociality ~ Age")
+
+#Basic means around the world
+global_pref_map(df.world$posrecip.mean, "Positive Reciprocity")
+global_pref_map(df.world$negrecip.mean, "Negative Reciprocity")
+global_pref_map(df.world$altruism.mean, "Altruism")
+global_pref_map(df.world$posrecip.mean, "Trust")
+global_pref_map(df.world$prosocial_contrib.mean, "Prosociality")
 
 
 # plots.map <- plot_grid(world.posrecip, world.negrecip, world.altruism, world.trust,
