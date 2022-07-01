@@ -458,19 +458,6 @@ df.pref <-  df.pref %>%
 
 # Run PREFERENCES QUADRATIC model with INTERACTION TERM
 
-tic <- Sys.time()
-model.quad.pref <- lmer(prosociality ~ gender + financial_wellbeing + physical_wellbeing + subj_math_skills + poly(age,2)*pref +
-                          #(1 | id:country) +  
-                          (0 + gender | country) +
-                          (1 | country) +
-                          (0 + financial_wellbeing | country) + 
-                          (0 + physical_wellbeing | country) +
-                          (0 + subj_math_skills | country) +
-                          (0 + age | country), 
-                        data = df.pref, control = lmerControl(optimizer="bobyqa", optCtrl=list(maxfun=2e5)))
-toc <- Sys.time()
-toc-tic
-
 # save(model.quad.pref, file = paste0("output/Preferences_quadratic_model.RData"))
 # 
 
@@ -482,14 +469,14 @@ toc-tic
 #                      (0 + age | country), data = df.pref, control = lmerControl(optimizer="bobyqa", optCtrl=list(maxfun=2e5)))
 # save(model.lin.pref, file = paste0("output/Preferences_linear_model.RData"))
 
-# Simpler version without all random effects
+# Linear only PREFERENCE model
 
-model.lin.pref <- lmer(prosociality ~ gender + financial_wellbeing + physical_wellbeing + subj_math_skills + age*pref + (1 | country) +
-           (0 + financial_wellbeing | country) + 
-           (0 + physical_wellbeing | country) + 
-           (0 + subj_math_skills | country) +
-           (0 + age | country),
-           data = df.pref, control = lmerControl(optimizer="bobyqa", optCtrl=list(maxfun=2e5)))
+# model.lin.pref <- lmer(prosociality ~ gender + financial_wellbeing + physical_wellbeing + subj_math_skills + age*pref + (1 | country) +
+#            (0 + financial_wellbeing | country) + 
+#            (0 + physical_wellbeing | country) + 
+#            (0 + subj_math_skills | country) +
+#            (0 + age | country),
+#            data = df.pref, control = lmerControl(optimizer="bobyqa", optCtrl=list(maxfun=2e5)))
 
 # save(model.lin.pref, file = paste0("output/Preferences_linear_model.RData"))
 
@@ -537,28 +524,52 @@ kable(r.lin.pref,
 
 # Create data-frame of for BEHAVIOURS modelling
 
-# df.behav <-  as_tibble(df) %>%
-#   rename(behav_donate = "WP108") %>%
-#   rename(behav_volunteer = "WP109") %>%
-#   rename(behav_help = "WP110")
-# 
-# # Create prosociality output variable
-# 
-# df.behav <-  df.behav %>% pivot_longer(cols = starts_with("behav"), names_to = "behav", names_prefix = "behav_", values_to = "prosociality")
-# 
+df.behav <-  as_tibble(df) %>%
+  rename(behav_donate = "WP108") %>%
+  rename(behav_volunteer = "WP109") %>%
+  rename(behav_help = "WP110")
+
+# Create prosociality output variable
+
+df.behav <-  df.behav %>% pivot_longer(cols = starts_with("behav"), names_to = "behav", names_prefix = "behav_", values_to = "prosociality")
+
 
 # Run model of BEHAVIOURS with interaction term = model.quad.behaviours
 
-# model.quad.behav <- glmer (prosociality ~ gender + financial_wellbeing + physical_wellbeing + subj_math_skills + poly(age,2)*behav +
-#                      (1 | id:country) + (1 | country) + #(0 + gender | country) +
-#                      (0 + financial_wellbeing | country) + (0 + physical_wellbeing | country) +
-#                      (0 + subj_math_skills | country) + (0 + age | country), 
-#                      data = df.behav, 
-#                      family = "binomial", 
-#                      control = glmerControl(optimizer="bobyqa", optCtrl=list(maxfun=2e5))
-#                      )
-# 
-# save(model.quad.behav, file = paste0("output/Behaviours_quadratic_model.RData"))
+tic <- Sys.time()
+model.quad.behav <- glmer (prosociality ~ gender + financial_wellbeing + physical_wellbeing + subj_math_skills + poly(age,2)*behav +
+                             #(1 | id:country) + 
+                             (1 | country) +
+                             #(0 + gender | country) +
+                             #(0 + financial_wellbeing | country) + 
+                             #(0 + physical_wellbeing | country) +
+                             #(0 + subj_math_skills | country) +
+                             #(0 + age | country),
+                     data = df.behav, family = "binomial", control = glmerControl(optimizer="bobyqa", optCtrl=list(maxfun=2e5))
+                            )
+toc <-  Sys.time()
+toc-tic
+
+#play version
+tic <- Sys.time()
+model.quad.behav <- glmer (prosociality ~ poly(age,2)*behav + gender + financial_wellbeing + physical_wellbeing + subj_math_skills +
+                             #(1 | id:country) + 
+                             (1 | country) +
+                             #(0 + gender | country) +
+                             (0 + financial_wellbeing | country) + 
+                             (0 + physical_wellbeing | country) +
+                             (0 + subj_math_skills | country) +
+                             (0 + age | country),
+                     data = df.behav, 
+                     family = "binomial", 
+                     nAGQ = 0,
+                     control = glmerControl(optimizer="bobyqa", optCtrl=list(maxfun=2e5))
+                            )
+toc <-  Sys.time()
+toc-tic
+
+
+save(model.quad.behav, file = paste0("output/Behaviours_quadratic_model.RData"))
 
 # model.lin.behav <- glmer(prosociality ~ gender + financial_wellbeing + physical_wellbeing + subj_math_skills + age*behav +
 #                      (1 | id:country) + (1 | country) + #(0 + gender | country) +
@@ -566,7 +577,7 @@ kable(r.lin.pref,
 #                      (0 + age | country), data = df.behav, family = "binomial", control = glmerControl(optimizer="bobyqa", optCtrl=list(maxfun=2e5)))
 # save(model.lin.behav, file = paste0("output/Behaviours_linear_model.RData"))
 
-load(paste0("output/Behaviours_quadratic_model.RData"))
+#load(paste0("output/Behaviours_quadratic_model.RData"))
 load(paste0("output/Behaviours_linear_model.RData"))
 
 results.quad.behav <- model_parameters(model.quad.behav, exponentiate = T, effects = "fixed")
