@@ -20,7 +20,8 @@ pacman::p_load(car,
                factoextra,
                ggridges,
                ggtext,
-               GPArotation, 
+               GPArotation,
+               gridExtra,
                haven,
                Hmisc,
                hrbrthemes,
@@ -362,7 +363,7 @@ df$prosocial_wgt_l <- df$prosocial_load * df$wgt
 
 ## DESCRIPTIVES + Data VISUALISATION
 
-```{r descriptives, eval = FALSE, echo=FALSE, include=FALSE}
+```{r descriptives, eval = TRUE, echo=FALSE}
 
 sum((df$gender) == "Male")
 sum((df$gender) == "Female")
@@ -442,7 +443,7 @@ ggplot(df,aes(x=prosocial_contrib, col=gender)) + geom_boxplot(alpha=0.2) + them
 
 ## Overall preferences and behaviour models
 
-```{r overall-models, eval=FALSE, echo=FALSE}
+```{r overall-models, eval=TRUE, echo=FALSE}
 
 ## NOTE: models take time to run, so are hashed out, previously run model objects are loaded in from file
 
@@ -603,7 +604,7 @@ kable(r.lin.behav,
 
 ## Plotting and modelling each individual PREFERENCE
 
-```{r pref-models-plots, eval = FALSE, echo=FALSE, message=FALSE, warning=FALSE, results='asis'}
+```{r pref-models-plots, eval = TRUE, echo=FALSE, message=FALSE, warning=FALSE, results='asis'}
 
 #Overall effects
 
