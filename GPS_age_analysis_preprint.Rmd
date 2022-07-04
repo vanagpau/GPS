@@ -458,7 +458,7 @@ rownames(p.mat) <- c("Age", "Financial well-being", "Physical well-being", "Subj
 
 corrplot::corrplot(c1, method = "circle", type = "upper", order = "hclust", col = colorRampPalette(c("blue", "white", "red"))(10), p.mat = p.mat, sig.level = 0.05, addCoef.col = "black", tl.col="black", tl.srt=45, tl.cex = .75, insig = "blank", number.font = 1, number.cex = .7, diag = FALSE)
 
-print(p.mat)
+#print(p.mat)
 
 
 
@@ -467,7 +467,7 @@ scatter_plot(df$prosocial_contrib, df$financial_wellbeing) + xlab("Prosociality"
 scatter_plot(df$prosocial_contrib, df$physical_wellbeing) + xlab("Prosociality") + ylab("Physical wellbeing")
 scatter_plot(df$prosocial_contrib, df$subj_math_skills) + xlab("Prosociality") + ylab("Subjective maths skills")
 
-ggplot(df,aes(x=age.r,y=prosocial_contrib,col=gender)) + geom_smooth(alpha=0.2, method = lm) + facet_wrap(~gender) + theme_apa() + xlab("Age") + ylab("Prosociality") + geom_point(alpha = 0.1)
+ggplot(df,aes(x=age.r,y=prosocial_contrib,col=gender)) + geom_smooth(alpha=0.2, method = lm, colour = "black") + facet_wrap(~gender) + theme_apa() + xlab("Age") + ylab("Prosociality") + geom_point(alpha = 0.1)
 
 ggplot(df,aes(x=prosocial_contrib, col=gender)) + geom_boxplot(alpha=0.2) + theme_apa() + facet_wrap(~gender) + coord_flip() + theme_apa() + xlab("Prosociality") + 
   theme(axis.text.x=element_blank(), axis.ticks.x=element_blank())
