@@ -363,7 +363,7 @@ df$prosocial_wgt_l <- df$prosocial_load * df$wgt
 
 ## DESCRIPTIVES + Data VISUALISATION
 
-```{r descriptives, eval = TRUE, echo=FALSE}
+```{r descriptives, eval = TRUE, echo=FALSE, warning=FALSE, message=FALSE}
 
 sum((df$gender) == "Male")
 sum((df$gender) == "Female")
@@ -415,14 +415,21 @@ scatter_plot <- function(x, y) {
 }
 
 scatter_plot(df$age.r, df$prosocial_contrib) + ylab("Prosociality")
-scatter_plot(df$age.r, df$posrecip)
-scatter_plot(df$age.r, df$altruism)
+scatter_plot(df$age.r, df$posrecip) + ylab("Positive Reciprocity")
+scatter_plot(df$age.r, df$altruism) + ylab("Altruism")
 scatter_plot(df$age.r, df$negrecip) + ylab("Negative Reciprocity")
 
 #Distributions of control variables
-df %>% ggplot(aes(x = financial_wellbeing)) + geom_histogram(colour="black", fill="grey", binwidth = 0.1) + xlab("Age") + ylab("Count") + theme_apa() 
-df %>% ggplot(aes(x = physical_wellbeing)) + geom_histogram(colour="black", fill="grey", binwidth = 0.1) + xlab("Age") + ylab("Count") + theme_apa() 
-df %>% ggplot(aes(x = subj_math_skills)) + geom_histogram(colour="black", fill="grey", binwidth = 0.1) + xlab("Age") + ylab("Count") + theme_apa() 
+df %>% ggplot(aes(x = financial_wellbeing)) + geom_histogram(colour="black", fill="grey", binwidth = 0.1) + xlab("Age") + ylab("Financial well-being") + theme_apa() 
+df %>% ggplot(aes(x = physical_wellbeing)) + geom_histogram(colour="black", fill="grey", binwidth = 0.1) + xlab("Age") + ylab("Physical well-being") + theme_apa() 
+df %>% ggplot(aes(x = subj_math_skills)) + geom_histogram(colour="black", fill="grey", binwidth = 0.1) + xlab("Age") + ylab("Subjective Maths skills") + theme_apa() 
+
+
+c1 <- df %>% select(age, financial_wellbeing, physical_wellbeing, subj_math_skills) %>% cor(use = "complete.obs")
+print(c1)
+
+
+
 
 #Look how prosociality varies with key control variables: financial, physical, and subj_math_skills
 scatter_plot(df$prosocial_contrib, df$financial_wellbeing) + xlab("Prosociality") + ylab("Financial wellbeing")
@@ -457,18 +464,19 @@ ggplot(df,aes(x=prosocial_contrib, col=gender)) + geom_boxplot(alpha=0.2) + them
 # df.pref <-  df.pref %>%
 #   pivot_longer(cols = starts_with("pref"), names_to = "pref", names_prefix = "pref_", values_to = "prosociality")
 
+
 # Run PREFERENCES QUADRATIC model with INTERACTION TERM
 
-# save(model.quad.pref, file = paste0("output/Preferences_quadratic_model.RData"))
-# 
-
-# Run PREFERENCES LINEAR model with INTERACTION TERM
-
-# model.lin.pref <- lmer(prosociality ~ gender + financial_wellbeing + physical_wellbeing + subj_math_skills + age*pref +
-#                      (1 | id:country) + (1 | country) + #(0 + gender | country) +
-#                      (0 + financial_wellbeing | country) + (0 + physical_wellbeing | country) + (0 + subj_math_skills | country) +
-#                      (0 + age | country), data = df.pref, control = lmerControl(optimizer="bobyqa", optCtrl=list(maxfun=2e5)))
-# save(model.lin.pref, file = paste0("output/Preferences_linear_model.RData"))
+# model.quad.pref <- lmer(prosociality ~ gender + financial_wellbeing + physical_wellbeing + subj_math_skills + poly(age,2)*prefs  +
+#                      #(1 | id:country) +
+#                      (1 | country) + 
+#                      #(0 + gender | country) +
+#                      (0 + financial_wellbeing | country) +
+#                      (0 + physical_wellbeing | country) + 
+#                      (0 + subj_math_skills | country) +
+#                      (0 + age | country),
+#                      data = df.pref, control = lmerControl(optimizer="bobyqa", optCtrl=list(maxfun=2e5)))
+# save(model.lin.pref, file = paste0("output/Preferences_quadratic_model.RData"))
 
 # Linear only PREFERENCE model
 
@@ -535,36 +543,48 @@ kable(r.lin.pref,
 # df.behav <-  df.behav %>% pivot_longer(cols = starts_with("behav"), names_to = "behav", names_prefix = "behav_", values_to = "prosociality")
 # 
 # 
-# # Run model of BEHAVIOURS with interaction term = model.quad.behaviours
+# # Run QUADRATIC model of BEHAVIOURS with interaction term = model.quad.behaviours
 # 
 # tic <- Sys.time()
 # model.quad.behav <- glmer (prosociality ~ poly(age,2)*behav + gender + financial_wellbeing + physical_wellbeing + subj_math_skills +
-#                              #(1 | id:country) + 
+#                              #(1 | id:country) +
 #                              (1 | country) +
 #                              #(0 + gender | country) +
-#                              (0 + financial_wellbeing | country) + 
+#                              (0 + financial_wellbeing | country) +
 #                              (0 + physical_wellbeing | country) +
 #                              (0 + subj_math_skills | country) +
 #                              (0 + age | country),
-#                      data = df.behav, 
-#                      family = "binomial", 
+#                      data = df.behav,
+#                      family = "binomial",
 #                      nAGQ = 0,
 #                      control = glmerControl(optimizer="nloptwrap", optCtrl=list(maxfun=2e5))
 #                             )
 # toc <-  Sys.time()
 # toc-tic
-# 
-# 
+
 # save(model.quad.behav, file = paste0("output/Behaviours_quadratic_model.RData"))
 
+
+# # Run LINEAR model of BEHAVIOURS with interaction term = model.lin.behav
+
 # model.lin.behav <- glmer(prosociality ~ gender + financial_wellbeing + physical_wellbeing + subj_math_skills + age*behav +
-#                      (1 | id:country) + (1 | country) + #(0 + gender | country) +
-#                      (0 + financial_wellbeing | country) + (0 + physical_wellbeing | country) + (0 + subj_math_skills | country) +
-#                      (0 + age | country), data = df.behav, family = "binomial", control = glmerControl(optimizer="bobyqa", optCtrl=list(maxfun=2e5)))
+#                      #(1 | id:country) +
+#                        (1 | country) + 
+#                        #(0 + gender | country) +
+#                      (0 + financial_wellbeing | country) + 
+#                        (0 + physical_wellbeing | country) + 
+#                        (0 + subj_math_skills | country) +
+#                      (0 + age | country), 
+#                      nAGQ = 0,
+#                      data = df.behav, family = "binomial", control = glmerControl(optimizer="bobyqa", optCtrl=list(maxfun=2e5)))
+# 
 # save(model.lin.behav, file = paste0("output/Behaviours_linear_model.RData"))
 
-load(paste0("output/Behaviours_quadratic_model.RData"))
+
 load(paste0("output/Behaviours_linear_model.RData"))
+load(paste0("output/Behaviours_quadratic_model.RData"))
+
+
 
 results.quad.behav <- model_parameters(model.quad.behav, exponentiate = T, effects = "fixed")
 
@@ -582,8 +602,6 @@ kable(r.quad.behav,
       align = c('l',rep('c',(ncol(r.quad.behav)-1))),
       caption = paste0("Quadratic mixed-effects model predicting prosocial behaviours")) %>%
   kable_styling()
-
-save(model.quad.behav, file = paste0("output/Behaviours_linear_model.RData"))
 
 results.lin.behav <- model_parameters(model.lin.behav, exponentiate = T, effects = "fixed")
 
@@ -831,6 +849,24 @@ for (v in 1:length(behavs)) {
 }
 
 ```
+
+## MODEL COMPARISON
+
+```{r model comparison, echo=FALSE, warning=FALSE}
+
+# PREFERENCES comparison
+
+load(file = paste0("output/Trust_quadratic_model.RData"))
+model.trust.quad <- model.quad
+load(file = paste0("output/Altruism_quadratic_model.RData"))
+model.altruism.quad <- model.quad
+
+AIC(model.trust.quad, model.altruism.quad)
+
+
+```
+
+
 
 ## Quantification of effects in each country 
 
