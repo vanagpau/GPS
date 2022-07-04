@@ -425,9 +425,38 @@ df %>% ggplot(aes(x = physical_wellbeing)) + geom_histogram(colour="black", fill
 df %>% ggplot(aes(x = subj_math_skills)) + geom_histogram(colour="black", fill="grey", binwidth = 0.1) + xlab("Age") + ylab("Subjective Maths skills") + theme_apa() 
 
 
-c1 <- df %>% select(age, financial_wellbeing, physical_wellbeing, subj_math_skills) %>% cor(use = "complete.obs")
-print(c1)
 
+
+# Show which variables are correlated with moralisation = all of them
+c1 <- df %>% select(age, financial_wellbeing, physical_wellbeing, subj_math_skills) %>% cor(use = "complete.obs")
+colnames(c1) <- c("Age", "Financial well-being", "Physical well-being", "Subjective Maths skills")
+rownames(c1) <- c("Age", "Financial well-being", "Physical well-being", "Subjective Maths skills")
+
+# Function to create matrix of p-values to add significance data to correlation matrix
+cor.mtest <- function(mat, ...) {
+    mat <- as.matrix(mat)
+    n <- ncol(mat)
+    p.mat<- matrix(NA, n, n)
+    diag(p.mat) <- 0
+    for (i in 1:(n - 1)) {
+        for (j in (i + 1):n) {
+            tmp <- cor.test(mat[, i], mat[, j], ...)
+            p.mat[i, j] <- p.mat[j, i] <- tmp$p.value
+        }
+    }
+  colnames(p.mat) <- rownames(p.mat) <- colnames(mat)
+  p.mat
+}
+
+# matrix of the p-value of the correlation with matched column and row names
+p.mat <- cor.mtest(df %>% select(age, financial_wellbeing, physical_wellbeing, subj_math_skills))
+colnames(p.mat) <- c("Age", "Financial well-being", "Physical well-being", "Subjective Maths skills")
+rownames(p.mat) <- c("Age", "Financial well-being", "Physical well-being", "Subjective Maths skills")
+
+
+corrplot::corrplot(c1, method = "circle", order = "FPC", col = colorRampPalette(c("blue", "white", "red"))(20), p.mat = p.mat, sig.level = 0.05, addCoef.col = "black", tl.col="black", tl.srt=45, tl.cex = .75, insig = "blank", number.font = 1, diag = FALSE)
+
+print(p.mat)
 
 
 
@@ -569,12 +598,12 @@ kable(r.lin.pref,
 
 # model.lin.behav <- glmer(prosociality ~ gender + financial_wellbeing + physical_wellbeing + subj_math_skills + age*behav +
 #                      #(1 | id:country) +
-#                        (1 | country) + 
+#                        (1 | country) +
 #                        #(0 + gender | country) +
-#                      (0 + financial_wellbeing | country) + 
-#                        (0 + physical_wellbeing | country) + 
+#                      (0 + financial_wellbeing | country) +
+#                        (0 + physical_wellbeing | country) +
 #                        (0 + subj_math_skills | country) +
-#                      (0 + age | country), 
+#                      (0 + age | country),
 #                      nAGQ = 0,
 #                      data = df.behav, family = "binomial", control = glmerControl(optimizer="bobyqa", optCtrl=list(maxfun=2e5)))
 # 
@@ -582,6 +611,7 @@ kable(r.lin.pref,
 
 
 load(paste0("output/Behaviours_linear_model.RData"))
+
 load(paste0("output/Behaviours_quadratic_model.RData"))
 
 
