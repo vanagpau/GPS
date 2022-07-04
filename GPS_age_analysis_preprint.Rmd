@@ -426,12 +426,13 @@ df %>% ggplot(aes(x = physical_wellbeing)) + geom_histogram(colour="black", fill
 df %>% ggplot(aes(x = subj_math_skills)) + geom_histogram(colour="black", fill="grey", binwidth = 0.1) + xlab("Age") + ylab("Subjective Maths skills") + theme_apa() 
 
 
-
+#create numerical index for gender
+df$gender_index <- as.integer(df$gender)
 
 # Correlation matrix of control variables and DV's
-c1 <- df %>% select(age, financial_wellbeing, physical_wellbeing, subj_math_skills, posrecip, negrecip, altruism, trust, WP108_raw, WP109_raw, WP110_raw) %>% cor(use = "complete.obs")
-colnames(c1) <- c("Age", "Financial well-being", "Physical well-being", "Subjective Maths skills", "Positive Reciprocity", "Negative Reciprocity", "Altruism", "Trust", "Donated money", "Volunteered", "Helped a stranger")
-rownames(c1) <- c("Age", "Financial well-being", "Physical well-being", "Subjective Maths skills", "Positive Reciprocity", "Negative Reciprocity", "Altruism", "Trust", "Donated money", "Volunteered", "Helped a stranger")
+c1 <- df %>% select(age, financial_wellbeing, physical_wellbeing, subj_math_skills, posrecip, negrecip, altruism, trust, WP108_raw, WP109_raw, WP110_raw, gender_index, prosocial_contrib) %>% cor(use = "complete.obs")
+colnames(c1) <- c("Age", "Financial well-being", "Physical well-being", "Subjective Maths skills", "Positive Reciprocity", "Negative Reciprocity", "Altruism", "Trust", "Donated money", "Volunteered", "Helped a stranger", "Gender", "Prosocial composite")
+rownames(c1) <- c("Age", "Financial well-being", "Physical well-being", "Subjective Maths skills", "Positive Reciprocity", "Negative Reciprocity", "Altruism", "Trust", "Donated money", "Volunteered", "Helped a stranger", "Gender", "Prosocial composite")
 
 # Function to create matrix of p-values to add significance data to correlation matrix
 cor.mtest <- function(mat, ...) {
@@ -450,9 +451,9 @@ cor.mtest <- function(mat, ...) {
 }
 
 # matrix of the p-value of the correlation with matched column and row names
-p.mat <- cor.mtest(df %>% select(age, financial_wellbeing, physical_wellbeing, subj_math_skills, posrecip, negrecip, altruism, trust, WP108_raw, WP109_raw, WP110_raw))
-colnames(p.mat) <- c("Age", "Financial well-being", "Physical well-being", "Subjective Maths skills", "Positive Reciprocity", "Negative Reciprocity", "Altruism", "Trust", "Donated money", "Volunteered", "Helped a stranger")
-rownames(p.mat) <- c("Age", "Financial well-being", "Physical well-being", "Subjective Maths skills", "Positive Reciprocity", "Negative Reciprocity", "Altruism", "Trust", "Donated money", "Volunteered", "Helped a stranger")
+p.mat <- cor.mtest(df %>% select(age, financial_wellbeing, physical_wellbeing, subj_math_skills, posrecip, negrecip, altruism, trust, WP108_raw, WP109_raw, WP110_raw, gender_index, prosocial_contrib))
+colnames(p.mat) <- c("Age", "Financial well-being", "Physical well-being", "Subjective Maths skills", "Positive Reciprocity", "Negative Reciprocity", "Altruism", "Trust", "Donated money", "Volunteered", "Helped a stranger", "Gender", "Prosocial composite")
+rownames(p.mat) <- c("Age", "Financial well-being", "Physical well-being", "Subjective Maths skills", "Positive Reciprocity", "Negative Reciprocity", "Altruism", "Trust", "Donated money", "Volunteered", "Helped a stranger", "Gender", "Prosocial composite")
 
 
 corrplot::corrplot(c1, method = "circle", type = "upper", order = "hclust", col = colorRampPalette(c("blue", "white", "red"))(10), p.mat = p.mat, sig.level = 0.05, addCoef.col = "black", tl.col="black", tl.srt=45, tl.cex = .75, insig = "blank", number.font = 1, number.cex = .7, diag = FALSE)
