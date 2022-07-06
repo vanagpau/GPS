@@ -950,7 +950,7 @@ for (v in 1:length(behavs)) {
 
 #Preferences models
 
-#Crate NA free dataframe to enable ANOVa comparisons
+#Create NA free dataframe to enable comparisons
 df.compare.pref <- df %>% select(prosocial_contrib, negrecip, posrecip, altruism, trust, gender, financial_wellbeing, physical_wellbeing, subj_math_skills, age, country) %>% na.omit()
 
 # Re-run model fits on new data-frame
@@ -994,6 +994,44 @@ models <- list(model.compare.altruism, model.compare.posrecip)
 model.names <- c("Altruism", "Positive Recip")
 aictab(cand.set = models, modnames = model.names)
 
+
+#Repeat for behaviours
+
+for (v in 1:length(behavs)) {
+
+  behav <- behavs[v]
+  behav.lab <- behav.labs[v]
+  
+  # create dataframe for modelling/plotting cycling through outcome variables one by one
+  df.mod <- df %>% 
+    dplyr::rename("outcome" = paste(behav)) %>% 
+    drop_na(c("outcome"))
+  
+  # Model fitting
+model.quad <- lmer(age ~ gender + financial_wellbeing + physical_wellbeing + subj_math_skills + outcome +
+                       (1 | country) + #(0 + gender | country) +
+                       (0 + financial_wellbeing | country) + (0 + physical_wellbeing | country) + (0 + subj_math_skills | country) +
+                       (0 + outcome | country),
+  data = df.mod, control = lmerControl(optimizer="bobyqa", optCtrl=list(maxfun=2e5)))
+  
+  assign(paste0("model.compare.",behav), model.quad)
+  
+  #save(model.quad1, file = paste0("output/",pref.lab, "_quadratic_comparison.RData"))
+  
+ 
+}
+
+models <- list(model.compare.WP108, model.compare.WP109, model.compare.WP110)
+model.names <- c("Donated", "Volunteered", "Helped stranger")
+aictab(cand.set = models, modnames = model.names)
+
+models <- list(model.compare.WP108, model.compare.WP109)
+model.names <- c("Donated", "Volunteered")
+aictab(cand.set = models, modnames = model.names)
+
+models <- list(model.compare.WP110, model.compare.WP109)
+model.names <- c("Helped", "Volunteer")
+aictab(cand.set = models, modnames = model.names)
 
 
 
