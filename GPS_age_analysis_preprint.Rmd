@@ -93,6 +93,9 @@ df <- df %>%
 
 contrasts(df$gender) <- contr.sum(length(levels(df$gender)))
 
+#create numerical index for gender
+df$gender_index <- as.integer(df$gender)
+
 df$age.r <- df$age
 df$age <- scale(df$age)
 df$subj_math_skills.r <- df$subj_math_skills
@@ -365,7 +368,7 @@ df$prosocial_wgt_l <- df$prosocial_load * df$wgt
 
 ## DESCRIPTIVES + Data VISUALISATION
 
-```{r descriptives, eval = TRUE, echo=FALSE, warning=FALSE, message=FALSE}
+```{r descriptives, eval = FALSE, echo=FALSE, warning=FALSE, message=FALSE}
 
 #sum((df$gender) == "Male")
 #sum((df$gender) == "Female")
@@ -428,9 +431,6 @@ df %>% ggplot(aes(x = physical_wellbeing)) + geom_histogram(colour="black", fill
 df %>% ggplot(aes(x = subj_math_skills)) + geom_histogram(colour="black", fill="grey", binwidth = 0.1) + xlab("Age") + ylab("Subjective Maths skills") + theme_apa() 
 
 
-#create numerical index for gender
-df$gender_index <- as.integer(df$gender)
-
 # Correlation matrix of control variables and DV's
 c1 <- df %>% select(age, financial_wellbeing, physical_wellbeing, subj_math_skills, posrecip, negrecip, altruism, trust, WP108_raw, WP109_raw, WP110_raw, gender_index, prosocial_contrib) %>% cor(use = "complete.obs")
 colnames(c1) <- c("Age", "Financial well-being", "Physical well-being", "Subjective Maths skills", "Positive Reciprocity", "Negative Reciprocity", "Altruism", "Trust", "Donated money", "Volunteered", "Helped a stranger", "Gender", "Prosocial composite")
@@ -483,7 +483,7 @@ ggplot(df,aes(x=prosocial_contrib, col=gender)) + geom_boxplot(alpha=0.2) + them
 
 ## Overall preferences and behaviour models
 
-```{r overall-models, eval=TRUE, echo=FALSE}
+```{r overall-models, eval = FALSE, echo=FALSE}
 
 ## NOTE: models take time to run, so are hashed out, previously run model objects are loaded in from file
 
@@ -656,7 +656,7 @@ kable(r.lin.behav,
 
 ## Plotting and modelling each individual PREFERENCE
 
-```{r pref-models-plots, eval = TRUE, echo=FALSE, message=FALSE, warning=FALSE, results='asis'}
+```{r pref-models-plots, eval = FALSE, echo=FALSE, message=FALSE, warning=FALSE, results='asis'}
 
 #Overall effects
 
@@ -802,7 +802,7 @@ for (v in 1:length(prefs)) {
 
 ## Plotting and modelling each individual BEHAVIOUR
 
-```{r behav-models-plots, eval=TRUE, echo=FALSE, message=FALSE, warning=FALSE, results='asis'}
+```{r behav-models-plots, eval = FALSE, echo=FALSE, message=FALSE, warning=FALSE, results='asis'}
 
 #Overall effects
 
@@ -946,7 +946,7 @@ for (v in 1:length(behavs)) {
 
 ## MODEL COMPARISONS
 
-```{r model-comparisons, echo = FALSE}
+```{r model-comparisons, eval = FALSE, echo = FALSE}
 
 #Preferences models
 
@@ -965,17 +965,18 @@ for (v in 1:length(prefs)) {
     dplyr::rename("outcome" = paste(pref)) %>% 
     drop_na(c("outcome"))
   
-  # Model fitting
-model.quad <- lmer(age ~ gender + financial_wellbeing + physical_wellbeing + subj_math_skills + poly(outcome,2) +
-                       (1 | country) + #(0 + gender | country) +
-                       (0 + financial_wellbeing | country) + (0 + physical_wellbeing | country) + (0 + subj_math_skills | country) +
-                       (0 + outcome | country),
-  data = df.mod, control = lmerControl(optimizer="bobyqa", optCtrl=list(maxfun=2e5)))
+  # Model fitting #'ed for speed - load from previous runs (below)
   
-  assign(paste0("model.compare.",pref), model.quad)
+# model.quad <- lmer(age ~ gender + financial_wellbeing + physical_wellbeing + subj_math_skills + poly(outcome,2) +
+#                        (1 | country) + #(0 + gender | country) +
+#                        (0 + financial_wellbeing | country) + (0 + physical_wellbeing | country) + (0 + subj_math_skills | country) +
+#                        (0 + outcome | country),
+#   data = df.mod, control = lmerControl(optimizer="bobyqa", optCtrl=list(maxfun=2e5)))
+#   
+#   assign(paste0("model.compare.",pref), model.quad)
   
   #save(model.quad1, file = paste0("output/",pref.lab, "_quadratic_comparison.RData"))
-  
+  load(model.quad1, file = paste0("output/",pref.lab, "_quadratic_comparison.RData"))
  
 }
 
@@ -1008,16 +1009,16 @@ for (v in 1:length(behavs)) {
     drop_na(c("outcome"))
   
   # Model fitting
-model.quad <- lmer(age ~ gender + financial_wellbeing + physical_wellbeing + subj_math_skills + outcome +
-                       (1 | country) + #(0 + gender | country) +
-                       (0 + financial_wellbeing | country) + (0 + physical_wellbeing | country) + (0 + subj_math_skills | country) +
-                       (0 + outcome | country),
-  data = df.mod, control = lmerControl(optimizer="bobyqa", optCtrl=list(maxfun=2e5)))
-  
-  assign(paste0("model.compare.",behav), model.quad)
+# model.quad <- lmer(age ~ gender + financial_wellbeing + physical_wellbeing + subj_math_skills + outcome +
+#                        (1 | country) + #(0 + gender | country) +
+#                        (0 + financial_wellbeing | country) + (0 + physical_wellbeing | country) + (0 + subj_math_skills | country) +
+#                        (0 + outcome | country),
+#   data = df.mod, control = lmerControl(optimizer="bobyqa", optCtrl=list(maxfun=2e5)))
+#   
+#   assign(paste0("model.compare.",behav), model.quad)
   
   #save(model.quad1, file = paste0("output/",pref.lab, "_quadratic_comparison.RData"))
-  
+  load(model.quad1, file = paste0("output/",pref.lab, "_quadratic_comparison.RData"))
  
 }
 
@@ -1039,7 +1040,7 @@ aictab(cand.set = models, modnames = model.names)
 
 ## Quantification of effects in each country 
 
-```{r country-effects, echo=FALSE, warning=FALSE, fig.align="center", fig.width=10, fig.height=8}
+```{r country-effects, echo=FALSE, eval = FALSE, warning=FALSE, fig.align="center", fig.width=10, fig.height=8}
 
 # cntry.list <- read.csv("data/List_countries.csv", sep = ",", header = TRUE) # list of countries
 cntry.list <- df %>% 
@@ -1139,7 +1140,7 @@ df.world$oecd <- factor(df.world$oecd, levels = c(0,1), labels = c("oecd", "not 
 
 # Map plots - preferences and behaviours
 
-```{r country-plots, echo=FALSE, fig.align="center", fig.width=10, fig.height=8}
+```{r country-plots, echo=FALSE, eval = FALSE, fig.align="center", fig.width=10, fig.height=8}
 
 # create function plotting preferences
 
