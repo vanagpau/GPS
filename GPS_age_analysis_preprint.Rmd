@@ -1244,6 +1244,8 @@ tab_model(mod_pref[[1]], mod_pref[[2]], mod_pref[[3]], mod_pref[[4]], mod_pref[[
   
   # 2. Re-run BEHAVIOUR models with GNI
 
+mod_behav <- list()
+
 for (v in 1:length(behavs)) {
 
   behav <- behavs[v]
@@ -1266,7 +1268,8 @@ for (v in 1:length(behavs)) {
                       nAGQ = 0, # speeds things up!
                       data = df.mod, family = "binomial", control = glmerControl(optimizer="bobyqa", optCtrl=list(maxfun=2e5)))
   
-   
+  mod_behav[[v]] <- model.quad
+  
   # save the model
   save(model.quad, file = paste0("output/",behav.lab, "_GNI_model.RData"))
   
@@ -1278,5 +1281,7 @@ for (v in 1:length(behavs)) {
   print(tab_model(model.quad, transform = NULL, file = paste0(behav.lab, "_GNI_model.html")))
   
 }
+
+tab_model(mod_behav[[1]], mod_behav[[2]], mod_behav[[3]], transform = NULL)
 
 ```
