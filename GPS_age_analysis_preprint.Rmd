@@ -13,7 +13,8 @@ options(digits = 4)
 # load required packages and functions
 
 require(pacman)
-pacman::p_load(car,
+pacman::p_load(AICcmodavg,
+               car,
                cowplot,
                countrycode,
                effectsize,
@@ -673,9 +674,12 @@ for (v in 1:length(prefs)) {
   # For SPEED of plotting cut out the model if required
   
   # model.quad <- lmer(outcome ~ gender + financial_wellbeing + physical_wellbeing + subj_math_skills + poly(age,2) +
-  #                      (1 | country) + #(0 + gender | country) +
-  #                      (0 + financial_wellbeing | country) + (0 + physical_wellbeing | country) + (0 + subj_math_skills | country) +
-  #                      (0 + age | country), data = df.mod, control = lmerControl(optimizer="bobyqa", optCtrl=list(maxfun=2e5)))
+  #                       (1 | country) + 
+                          # #(0 + gender | country) +
+  #                       (0 + financial_wellbeing | country) +
+  #                       (0 + physical_wellbeing | country) +
+  #                       (0 + subj_math_skills | country) +
+  #                       (0 + age | country), data = df.mod, control = lmerControl(optimizer="bobyqa", optCtrl=list(maxfun=2e5)))
   # save(model.quad, file = paste0("output/",pref.lab, "_quadratic_model.RData"))
   
   load(file = paste0("output/",pref.lab, "_quadratic_model.RData"))
@@ -967,16 +971,16 @@ for (v in 1:length(prefs)) {
   
   # Model fitting #'ed for speed - load from previous runs (below)
   
-# model.quad <- lmer(age ~ gender + financial_wellbeing + physical_wellbeing + subj_math_skills + poly(outcome,2) +
-#                        (1 | country) + #(0 + gender | country) +
-#                        (0 + financial_wellbeing | country) + (0 + physical_wellbeing | country) + (0 + subj_math_skills | country) +
-#                        (0 + outcome | country),
-#   data = df.mod, control = lmerControl(optimizer="bobyqa", optCtrl=list(maxfun=2e5)))
-#   
-#   assign(paste0("model.compare.",pref), model.quad)
+model.quad <- lmer(age ~ gender + financial_wellbeing + physical_wellbeing + subj_math_skills + poly(outcome,2) +
+                       (1 | country) + #(0 + gender | country) +
+                       (0 + financial_wellbeing | country) + (0 + physical_wellbeing | country) + (0 + subj_math_skills | country) +
+                       (0 + outcome | country),
+  data = df.mod, control = lmerControl(optimizer="bobyqa", optCtrl=list(maxfun=2e5)))
+
+  assign(paste0("model.compare.",pref), model.quad)
   
-  #save(model.quad1, file = paste0("output/",pref.lab, "_quadratic_comparison.RData"))
-  load(model.quad1, file = paste0("output/",pref.lab, "_quadratic_comparison.RData"))
+  save(model.quad, file = paste0("output/",pref.lab, "_quadratic_comparison.RData"))
+  #load(model.quad, file = paste0("output/",pref.lab, "_quadratic_comparison.RData"))
  
 }
 
@@ -1009,16 +1013,16 @@ for (v in 1:length(behavs)) {
     drop_na(c("outcome"))
   
   # Model fitting
-# model.quad <- lmer(age ~ gender + financial_wellbeing + physical_wellbeing + subj_math_skills + outcome +
-#                        (1 | country) + #(0 + gender | country) +
-#                        (0 + financial_wellbeing | country) + (0 + physical_wellbeing | country) + (0 + subj_math_skills | country) +
-#                        (0 + outcome | country),
-#   data = df.mod, control = lmerControl(optimizer="bobyqa", optCtrl=list(maxfun=2e5)))
-#   
-#   assign(paste0("model.compare.",behav), model.quad)
+model.quad <- lmer(age ~ gender + financial_wellbeing + physical_wellbeing + subj_math_skills + outcome +
+                       (1 | country) + #(0 + gender | country) +
+                       (0 + financial_wellbeing | country) + (0 + physical_wellbeing | country) + (0 + subj_math_skills | country) +
+                       (0 + outcome | country),
+  data = df.mod, control = lmerControl(optimizer="bobyqa", optCtrl=list(maxfun=2e5)))
+
+  assign(paste0("model.compare.",behav), model.quad)
   
-  #save(model.quad1, file = paste0("output/",pref.lab, "_quadratic_comparison.RData"))
-  load(model.quad1, file = paste0("output/",pref.lab, "_quadratic_comparison.RData"))
+  save(model.quad, file = paste0("output/",pref.lab, "_quadratic_comparison.RData"))
+  #load(model.quad, file = paste0("output/",pref.lab, "_quadratic_comparison.RData"))
  
 }
 
@@ -1202,6 +1206,8 @@ ggplot(df.long, aes(long, lat, group = group)) +
 
 # 1. Re-run PREFERENCE models with GNI
 
+tab_pref <- list()
+
 for (v in 1:length(prefs)) {
 
   pref <- prefs[v]
@@ -1213,21 +1219,67 @@ for (v in 1:length(prefs)) {
     drop_na(c("outcome"))
   
   # For speed of plotting cut out the model if required
+  # Note: model does not converge if gender slope random effect is included
   
-  model.quad <- lmer(outcome ~ gender + financial_wellbeing + physical_wellbeing + subj_math_skills + poly(age,2) + gni +
-                       (1 | country),  
+  model.quad <- lmer(outcome ~ gender + financial_wellbeing + physical_wellbeing + subj_math_skills + poly(age,2) * gni +
+                       (1 | country) +  
                        # (0 + gender | country) +
-                       # (0 + financial_wellbeing | country) +
-                       # (0 + physical_wellbeing | country) +
-                       # (0 + subj_math_skills | country) +
-                       # (0 + age | country),
+                       (0 + financial_wellbeing | country) +
+                       (0 + physical_wellbeing | country) +
+                       (0 + subj_math_skills | country) +
+                       (0 + age | country),
                      data = df.mod, control = lmerControl(optimizer="bobyqa", optCtrl=list(maxfun=2e5)))
   
-  #load(file = paste0("output/",pref.lab, "_quadratic_model.RData"))
+  save(model.quad, file = paste0("output/",pref.lab, "_GNI_model.RData"))
+  #load(model.quad, file = paste0("output/",pref.lab, "_GNI_model.RData"))
   
   #save html table to file (note: print is required as sjPlot does not render in Rmd)
 
   print(tab_model(model.quad, file = paste0(pref.lab, "_GNI_model.html")))
+  tab_pref[[v]] <- tab_model(model.quad)
+  
+}
+
+tab_pref[[1]]
+tab_pref[[2]]
+tab_pref[[3]]
+tab_pref[[4]]
+tab_pref[[5]]
+  
+  # 2. Re-run BEHAVIOUR models with GNI
+
+for (v in 1:length(behavs)) {
+
+  behav <- behavs[v]
+  behav.lab <- behav.labs[v]
+  
+  # create dataframe for modelling/plotting cycling through outcome variables one by one
+  df.mod <- df %>% 
+    dplyr::rename("outcome" = paste(behav)) %>% 
+    drop_na(c("outcome"))
+  
+  # For SPEED of plotting cut out the model if required
+  
+  model.quad <- glmer(outcome ~ gender + financial_wellbeing + physical_wellbeing + subj_math_skills + poly(age,2) * gni +
+                      (1 | country) +
+                      #(0 + gender | country) +
+                      (0 + financial_wellbeing | country) +
+                      (0 + physical_wellbeing | country) +
+                      (0 + subj_math_skills | country) +
+                      (0 + age | country),
+                      nAGQ = 0, # speeds things up!
+                      data = df.mod, family = "binomial", control = glmerControl(optimizer="bobyqa", optCtrl=list(maxfun=2e5)))
+  
+   
+  # save the model
+  save(model.quad, file = paste0("output/",behav.lab, "_GNI_model.RData"))
+  
+  #load previously created model
+  #load(file = paste0("output/",behav.lab, "_GNI_model.RData"))
+
+  #save html summary table to file
+
+  print(tab_model(model.quad, transform = NULL, file = paste0(behav.lab, "_GNI_model.html")))
   
 }
 
