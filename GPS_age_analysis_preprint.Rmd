@@ -1193,3 +1193,42 @@ ggplot(df.long, aes(long, lat, group = group)) +
 # print(plots.map)
 
 ```
+
+## GNI/Family Ties analysis
+
+```{r economic-social-moderation, eval = FALSE}
+
+## Re-run models with GNI data
+
+# 1. Re-run PREFERENCE models with GNI
+
+for (v in 1:length(prefs)) {
+
+  pref <- prefs[v]
+  pref.lab <- pref.labs[v]
+  
+  # create dataframe for modelling/plotting cycling through outcome variables one by one
+  df.mod <- df %>% 
+    dplyr::rename("outcome" = paste(pref)) %>% 
+    drop_na(c("outcome"))
+  
+  # For speed of plotting cut out the model if required
+  
+  model.quad <- lmer(outcome ~ gender + financial_wellbeing + physical_wellbeing + subj_math_skills + poly(age,2) + gni +
+                       (1 | country),  
+                       # (0 + gender | country) +
+                       # (0 + financial_wellbeing | country) +
+                       # (0 + physical_wellbeing | country) +
+                       # (0 + subj_math_skills | country) +
+                       # (0 + age | country),
+                     data = df.mod, control = lmerControl(optimizer="bobyqa", optCtrl=list(maxfun=2e5)))
+  
+  #load(file = paste0("output/",pref.lab, "_quadratic_model.RData"))
+  
+  #save html table to file (note: print is required as sjPlot does not render in Rmd)
+
+  print(tab_model(model.quad, file = paste0(pref.lab, "_GNI_model.html")))
+  
+}
+
+```
