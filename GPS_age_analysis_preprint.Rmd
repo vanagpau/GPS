@@ -988,16 +988,20 @@ model.quad <- lmer(age ~ gender + financial_wellbeing + physical_wellbeing + sub
 
 models <- list(model.compare.altruism, model.compare.negrecip, model.compare.posrecip, model.compare.trust)
 model.names <- c("Altruism", "Negative Recip", "Positive Recip", "Trust")
-
-aictab(cand.set = models, modnames = model.names)
+aictab(cand.set = models, modnames = model.names) %>% kbl() %>%
+  kable_classic(full_width = F, html_font = "Arial")
 
 models <- list(model.compare.altruism, model.compare.posrecip, model.compare.trust)
 model.names <- c("Altruism", "Positive Recip", "Trust")
-aictab(cand.set = models, modnames = model.names)
+aictab(cand.set = models, modnames = model.names) %>% 
+  kbl() %>%
+  kable_classic(full_width = F, html_font = "Arial")
 
 models <- list(model.compare.altruism, model.compare.posrecip)
 model.names <- c("Altruism", "Positive Recip")
-aictab(cand.set = models, modnames = model.names)
+aictab(cand.set = models, modnames = model.names) %>% 
+  kbl() %>%
+  kable_classic(full_width = F, html_font = "Arial")
 
 
 #Repeat for behaviours
@@ -1028,15 +1032,21 @@ model.quad <- lmer(age ~ gender + financial_wellbeing + physical_wellbeing + sub
 
 models <- list(model.compare.WP108, model.compare.WP109, model.compare.WP110)
 model.names <- c("Donated", "Volunteered", "Helped stranger")
-aictab(cand.set = models, modnames = model.names)
+aictab(cand.set = models, modnames = model.names) %>% 
+  kbl() %>%
+  kable_classic(full_width = F, html_font = "Arial")
 
 models <- list(model.compare.WP108, model.compare.WP109)
 model.names <- c("Donated", "Volunteered")
-aictab(cand.set = models, modnames = model.names)
+aictab(cand.set = models, modnames = model.names)%>% 
+  kbl() %>%
+  kable_classic(full_width = F, html_font = "Arial")
 
 models <- list(model.compare.WP110, model.compare.WP109)
 model.names <- c("Helped", "Volunteer")
-aictab(cand.set = models, modnames = model.names)
+aictab(cand.set = models, modnames = model.names)%>% 
+  kbl() %>%
+  kable_classic(full_width = F, html_font = "Arial")
 
 
 
