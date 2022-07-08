@@ -67,5 +67,5 @@ summary(mA3)
 AICcmodavg::aictab(cand.set  = list(mA1, mA2, mA3), modnames = c("Linear +ve", "None", "Exp -ve"))
 AICcmodavg::aictab(cand.set  = list(mA2, mA3), modnames = c("None", "Exp -ve"))
 
-#Run to knot doc
+#Run to knit doc
 #knitr::spin("C:/Users/paulv/Documents/R/GPS/Model comparison dummy data.r")
