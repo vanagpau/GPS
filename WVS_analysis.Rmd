@@ -1,0 +1,81 @@
+---
+title: "WVS_analysis"
+author: "Paul Vanags"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+require(pacman)
+pacman::p_load(rstudioapi,
+               tidyverse
+)
+
+# Get the name of the directory in which the current file is located.
+cur_dir = dirname(getSourceEditorContext()$path)
+
+# Change the working directory to the directory with the current file.
+setwd(cur_dir)
+
+```
+
+## IMPORT DATA
+```{r import-data}
+
+load("data/World_Values_Survey_wave7/WV4_Data_R_v20201117.RData")
+
+WV4 <- WV4_Data_R_v20201117
+
+rm(WV4_Data_R_v20201117)
+
+```
+
+```{r PCA}
+
+# without weighting, with neg reciprocity
+df.dropna <- df %>% drop_na(c("posrecip", "negrecip", "altruism", "trust")) %>% 
+  select(posrecip, negrecip, altruism, trust)
+
+cor(df.dropna[,c("posrecip", "negrecip", "altruism", "trust")])
+
+dat.pca <- prcomp(df.dropna[,c("posrecip", "negrecip", "altruism", "trust")], scale = TRUE)
+
+summary(dat.pca)
+
+fviz_eig(dat.pca)
+
+fviz_pca_var(dat.pca,
+             col.var = "contrib", # Color by contributions to the PC
+             gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"),
+             repel = TRUE     # Avoid text overlapping
+)
+
+get_eigenvalue(dat.pca)
+
+#without weighting, without neg reciprocity
+
+cor(df.dropna[,c("posrecip", "altruism", "trust")])
+
+dat.pca <- prcomp(df.dropna[,c("posrecip", "altruism", "trust")], scale = TRUE)
+
+summary(dat.pca)
+
+fviz_eig(dat.pca)
+
+fviz_pca_var(dat.pca,
+             col.var = "contrib", # Color by contributions to the PC
+             gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"),
+             repel = TRUE     # Avoid text overlapping
+)
+
+get_eigenvalue(dat.pca)
+
+#loadings of variable on each component
+dat.pca$rotation
+
+dat.var <- get_pca_var(dat.pca)
+dat.var$contrib        # Contributions to the Principal Component
+
+```
