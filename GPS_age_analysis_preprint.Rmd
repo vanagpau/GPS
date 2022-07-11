@@ -421,10 +421,16 @@ scatter_plot <- function(x, y) {
     geom_smooth(method='lm', formula= y ~ x, size = 0.5, se = F, linetype = "longdash") 
 }
 
-scatter_plot(df$age.r, df$prosocial_contrib) + ylab("Prosociality")
-scatter_plot(df$age.r, df$posrecip) + ylab("Positive Reciprocity")
-scatter_plot(df$age.r, df$altruism) + ylab("Altruism")
-scatter_plot(df$age.r, df$negrecip) + ylab("Negative Reciprocity")
+scatter_plot(df$age.r, df$prosocial_contrib) + ylab("Prosociality") + xlab("Age")
+
+s1 <- scatter_plot(df$age.r, df$posrecip) + ylab("Positive Reciprocity") + xlab("Age")
+s2 <- scatter_plot(df$age.r, df$altruism) + ylab("Altruism") + xlab("Age")
+s3 <- scatter_plot(df$age.r, df$negrecip) + ylab("Negative Reciprocity") + xlab("Age")
+s4 <- scatter_plot(df$age.r, df$trust) + ylab("Trust") + xlab("Age")
+
+grid.arrange(s1, s2, s3, s4)
+
+
 
 #Distributions of control variables
 df %>% ggplot(aes(x = financial_wellbeing)) + geom_histogram(colour="black", fill="grey", binwidth = 0.1) + xlab("Age") + ylab("Financial well-being") + theme_apa() 
@@ -971,16 +977,16 @@ for (v in 1:length(prefs)) {
   
   # Model fitting #'ed for speed - load from previous runs (below)
   
-model.quad <- lmer(age ~ gender + financial_wellbeing + physical_wellbeing + subj_math_skills + poly(outcome,2) +
-                       (1 | country) + #(0 + gender | country) +
-                       (0 + financial_wellbeing | country) + (0 + physical_wellbeing | country) + (0 + subj_math_skills | country) +
-                       (0 + outcome | country),
-  data = df.mod, control = lmerControl(optimizer="bobyqa", optCtrl=list(maxfun=2e5)))
-
-  assign(paste0("model.compare.",pref), model.quad)
-  
-  save(model.quad, file = paste0("output/",pref.lab, "_quadratic_comparison.RData"))
-  #load(model.quad, file = paste0("output/",pref.lab, "_quadratic_comparison.RData"))
+# model.quad <- lmer(age ~ gender + financial_wellbeing + physical_wellbeing + subj_math_skills + poly(outcome,2) +
+#                        (1 | country) + #(0 + gender | country) +
+#                        (0 + financial_wellbeing | country) + (0 + physical_wellbeing | country) + (0 + subj_math_skills | country) +
+#                        (0 + outcome | country),
+#   data = df.mod, control = lmerControl(optimizer="bobyqa", optCtrl=list(maxfun=2e5)))
+# 
+#   assign(paste0("model.compare.",pref), model.quad)
+# 
+#   save(list = paste0("model.compare.",pref), file = paste0("output/",pref.lab, "_quadratic_comparison.RData"))
+  load(file = paste0("output/",pref.lab, "_quadratic_comparison.RData"))
  
 }
 
@@ -988,18 +994,18 @@ model.quad <- lmer(age ~ gender + financial_wellbeing + physical_wellbeing + sub
 
 models <- list(model.compare.altruism, model.compare.negrecip, model.compare.posrecip, model.compare.trust)
 model.names <- c("Altruism", "Negative Recip", "Positive Recip", "Trust")
-aictab(cand.set = models, modnames = model.names) %>% kbl() %>%
+aictab(cand.set = models, modnames = model.names, REML = FALSE) %>% kbl() %>%
   kable_classic(full_width = F, html_font = "Arial")
 
 models <- list(model.compare.altruism, model.compare.posrecip, model.compare.trust)
 model.names <- c("Altruism", "Positive Recip", "Trust")
-aictab(cand.set = models, modnames = model.names) %>% 
+aictab(cand.set = models, modnames = model.names, REML = FALSE) %>% 
   kbl() %>%
   kable_classic(full_width = F, html_font = "Arial")
 
 models <- list(model.compare.altruism, model.compare.posrecip)
 model.names <- c("Altruism", "Positive Recip")
-aictab(cand.set = models, modnames = model.names) %>% 
+aictab(cand.set = models, modnames = model.names, REML = FALSE) %>% 
   kbl() %>%
   kable_classic(full_width = F, html_font = "Arial")
 
@@ -1017,34 +1023,34 @@ for (v in 1:length(behavs)) {
     drop_na(c("outcome"))
   
   # Model fitting
-model.quad <- lmer(age ~ gender + financial_wellbeing + physical_wellbeing + subj_math_skills + outcome +
-                       (1 | country) + #(0 + gender | country) +
-                       (0 + financial_wellbeing | country) + (0 + physical_wellbeing | country) + (0 + subj_math_skills | country) +
-                       (0 + outcome | country),
-  data = df.mod, control = lmerControl(optimizer="bobyqa", optCtrl=list(maxfun=2e5)))
-
-  assign(paste0("model.compare.",behav), model.quad)
-  
-  save(model.quad, file = paste0("output/",pref.lab, "_quadratic_comparison.RData"))
-  #load(model.quad, file = paste0("output/",pref.lab, "_quadratic_comparison.RData"))
+# model.quad <- lmer(age ~ gender + financial_wellbeing + physical_wellbeing + subj_math_skills + outcome +
+#                        (1 | country) + #(0 + gender | country) +
+#                        (0 + financial_wellbeing | country) + (0 + physical_wellbeing | country) + (0 + subj_math_skills | country) +
+#                        (0 + outcome | country),
+#   data = df.mod, control = lmerControl(optimizer="bobyqa", optCtrl=list(maxfun=2e5)))
+# 
+#   assign(paste0("model.compare.",behav), model.quad)
+# 
+#   save(list = paste0("model.compare.",behav), file = paste0("output/",pref.lab, "_quadratic_comparison.RData"))
+  load(file = paste0("output/",pref.lab, "_quadratic_comparison.RData"))
  
 }
 
 models <- list(model.compare.WP108, model.compare.WP109, model.compare.WP110)
 model.names <- c("Donated", "Volunteered", "Helped stranger")
-aictab(cand.set = models, modnames = model.names) %>% 
+aictab(cand.set = models, modnames = model.names, REML = FALSE) %>% 
   kbl() %>%
   kable_classic(full_width = F, html_font = "Arial")
 
 models <- list(model.compare.WP108, model.compare.WP109)
 model.names <- c("Donated", "Volunteered")
-aictab(cand.set = models, modnames = model.names)%>% 
+aictab(cand.set = models, modnames = model.names, REML = FALSE)%>% 
   kbl() %>%
   kable_classic(full_width = F, html_font = "Arial")
 
 models <- list(model.compare.WP110, model.compare.WP109)
 model.names <- c("Helped", "Volunteer")
-aictab(cand.set = models, modnames = model.names)%>% 
+aictab(cand.set = models, modnames = model.names, REML = FALSE) %>% 
   kbl() %>%
   kable_classic(full_width = F, html_font = "Arial")
 
@@ -1057,8 +1063,8 @@ aictab(cand.set = models, modnames = model.names)%>%
 ```{r country-effects, echo=FALSE, eval = FALSE, warning=FALSE, fig.align="center", fig.width=10, fig.height=8}
 
 # cntry.list <- read.csv("data/List_countries.csv", sep = ",", header = TRUE) # list of countries
-cntry.list <- df %>% 
-  select(c("isocode", "country"))
+cntry.list <- df %>%   select(c("isocode", "country"))
+
 cntry.list <- unique(cntry.list)
 
 # create a dataframe with the country information and columns of NA to fill in below
@@ -1070,7 +1076,7 @@ country.results <- data.frame(cntry.list$isocode, cntry.list$country, matrix(dat
 names(country.results) <- countrycols
 country.results.p <- country.results
 
-# loop over each country
+# loop over each country = PREFERENCES
 for (c in country.results$isocode) {
   
   cdf <- subset(df, isocode == c) # select rows from that country
@@ -1082,8 +1088,9 @@ for (c in country.results$isocode) {
   country.results$trust.mean[country.results.p$isocode == c] = c(mean(cdf$trust, na.rm = TRUE))
   country.results$prosocial_contrib.mean[country.results.p$isocode == c] =
     c(mean(cdf$prosocial_contrib, na.rm = TRUE))
+
   
-  # standardise variables for modelling
+  # standardise continuous variables for modelling
   cdf[,c("age", "posrecip", "negrecip", "altruism", "trust", "prosocial_contrib")] <- scale(cdf[,c("age", "posrecip", "negrecip", "altruism", "trust", "prosocial_contrib")])
   
   # run linear model for each outcome & extract parameters
@@ -1092,6 +1099,7 @@ for (c in country.results$isocode) {
   cntry.a <- model_parameters(lm(altruism ~ gender + age, data = cdf), standardize = "refit")
   cntry.t <- model_parameters(lm(trust ~ gender + age, data = cdf), standardize = "refit")
   cntry.pr <- model_parameters(lm(prosocial_contrib ~ gender + age, data = cdf), standardize = "refit")
+
   
   #add slope coefficients to dataframe
   country.results$posrecip.age[country.results$isocode == c] = tail(cntry.p$Coefficient,1)
@@ -1099,6 +1107,7 @@ for (c in country.results$isocode) {
   country.results$altruism.age[country.results$isocode == c] = tail(cntry.a$Coefficient,1)
   country.results$trust.age[country.results$isocode == c] = tail(cntry.t$Coefficient,1)
   country.results$prosocial_contrib.age[country.results$isocode == c] = tail(cntry.pr$Coefficient,1)
+
   
   #add p values (I think?)
   country.results.p$posrecip.age[country.results$isocode == c] = tail(cntry.p$p,1)
@@ -1106,10 +1115,41 @@ for (c in country.results$isocode) {
   country.results.p$altruism.age[country.results$isocode == c] = tail(cntry.a$p,1)
   country.results.p$trust.age[country.results$isocode == c] = tail(cntry.t$p,1)
   country.results.p$prosocial_contrib.age[country.results$isocode == c] = tail(cntry.pr$p,1)
+
   #add number of observations per country
   country.results$n[country.results$isocode == c] = nrow(cdf)
   
 }
+
+# create new df for behaviours to deal with NAs
+# 
+# country.results.behav <- country.results %>% na.omit
+# 
+# # loop over each country = BEHAVIOURS
+for (c in country.results$isocode) {
+
+  cdf <- df %>%  filter(isocode == c) %>% select(WP108, WP109, WP110, gender, age) %>% na.omit
+
+  if (dim(cdf)[1] > 20) {
+
+  country.results$donated.mean[country.results.p$isocode == c] = c(mean(cdf$WP108, na.rm = TRUE))
+  country.results$volunteered.mean[country.results.p$isocode == c] = c(mean(cdf$WP109, na.rm = TRUE))
+  country.results$helped.mean[country.results.p$isocode == c] = c(mean(cdf$WP110, na.rm = TRUE))
+
+  cntry.d <- model_parameters(glm(WP108 ~ gender + age, family = binomial, data = cdf))
+  cntry.v <- model_parameters(glm(WP109 ~ gender + age,  family = binomial, data = cdf))
+  cntry.h <- model_parameters(glm(WP110 ~ gender + age,  family = binomial, data = cdf))
+
+  country.results$donated.age[country.results$isocode == c] = tail(cntry.d$Coefficient,1)
+  country.results$volunteered.age[country.results$isocode == c] = tail(cntry.v$Coefficient,1)
+  country.results$helped.age[country.results$isocode == c] = tail(cntry.h$Coefficient,1)
+
+  country.results.p$donated.age[country.results$isocode == c] = tail(cntry.d$p,1)
+  country.results.p$volunteered.age[country.results$isocode == c] = tail(cntry.v$p,1)
+  country.results.p$helped.age[country.results$isocode == c] = tail(cntry.d$h,1)
+
+  }
+ }
 
 # create data for map
 world_map <- map_data("world") %>%
@@ -1128,10 +1168,9 @@ world_map$isocode <- countrycode(world_map$region, 'country.name', 'iso3c')
 # # combine country information with results & add European countries no data collected in to show blank on map
 # continents <- left_join(continents, country.results, by = "isocode") %>% 
 #   add_row(region = c("Cyprus", "Czech Republic", "Estonia", "Lithuania", "Luxembourg", "Malta", "Portugal", "Belarus", "Moldova", "Slovenia", "Bosnia and Herzegovina", "Montenegro", "Kosovo", "Albania", "Bulgaria"), continent = rep("Europe", 15))
+
+
 df.world <- left_join(world_map %>% select(-region), country.results, by = "isocode")
-
-
-# df.europe <- subset(df.world, continent == "Europe" & region != "Russia")
 
 # add OECD index to map dataframe
 df.world$oecd <- NA
@@ -1185,12 +1224,13 @@ p3 <- global_pref_map(df.world$altruism.mean, "Altruism")
 p4 <- global_pref_map(df.world$trust.mean, "Trust")
 global_pref_map(df.world$prosocial_contrib.mean, "Prosociality")
 
+#grid arrange
+grid.arrange(p1, p2, p3, p4)
 
 
 # Do it by facet wrap
 df.long <- pivot_longer(df.world, cols = c(posrecip.mean, negrecip.mean, altruism.mean, trust.mean), names_to = "pref", values_to = "mean")
 df.long$pref <- factor(df.long$pref, labels = c("Altruism", "NegativeReciprocity", "PositiveReciprocity", "Trust"))
-
 
 ggplot(df.long, aes(long, lat, group = group)) +
   geom_polygon(aes(fill = mean), color = "white", size = .1) +
@@ -1199,7 +1239,8 @@ ggplot(df.long, aes(long, lat, group = group)) +
   theme(axis.text.x=element_blank(), axis.ticks.x=element_blank(), axis.text.y=element_blank(), axis.ticks.y=element_blank(), axis.title.x=element_blank(), axis.title.y = element_blank()) +
   facet_wrap(~pref, labeller = label_value)
 
-
+#Repeat for behaviours
+global_pref_map(df.world$posrecip.mean, "Positive Reciprocity")
 
 # plots.map <- plot_grid(world.posrecip, world.negrecip, world.altruism, world.trust,
 #                        align = "v", nrow = 3, labels = "auto", label_size = axtitle-4)
