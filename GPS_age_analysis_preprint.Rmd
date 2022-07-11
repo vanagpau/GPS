@@ -1130,15 +1130,15 @@ for (c in country.results$isocode) {
 
   cdf <- df %>%  filter(isocode == c) %>% select(WP108, WP109, WP110, gender, age) %>% na.omit
 
-  if (dim(cdf)[1] > 20) {
+  if (dim(cdf)[1] > 20) { # exclude countries that do not have more than 20 valid observations
 
   country.results$donated.mean[country.results.p$isocode == c] = c(mean(cdf$WP108, na.rm = TRUE))
   country.results$volunteered.mean[country.results.p$isocode == c] = c(mean(cdf$WP109, na.rm = TRUE))
   country.results$helped.mean[country.results.p$isocode == c] = c(mean(cdf$WP110, na.rm = TRUE))
 
-  cntry.d <- model_parameters(glm(WP108 ~ gender + age, family = binomial, data = cdf))
-  cntry.v <- model_parameters(glm(WP109 ~ gender + age,  family = binomial, data = cdf))
-  cntry.h <- model_parameters(glm(WP110 ~ gender + age,  family = binomial, data = cdf))
+  cntry.d <- model_parameters(glm(WP108 ~ gender + age, family = binomial, data = cdf, standardize = "refit"))
+  cntry.v <- model_parameters(glm(WP109 ~ gender + age,  family = binomial, data = cdf, standardize = "refit"))
+  cntry.h <- model_parameters(glm(WP110 ~ gender + age,  family = binomial, data = cdf, standardize = "refit"))
 
   country.results$donated.age[country.results$isocode == c] = tail(cntry.d$Coefficient,1)
   country.results$volunteered.age[country.results$isocode == c] = tail(cntry.v$Coefficient,1)
@@ -1149,7 +1149,14 @@ for (c in country.results$isocode) {
   country.results.p$helped.age[country.results$isocode == c] = tail(cntry.d$h,1)
 
   }
- }
+}
+
+# Standardise outputs
+country.results$donated.mean <- scale(country.results$donated.mean)
+country.results$volunteered.mean <- scale(country.results$volunteered.mean)
+country.results$helped.mean <- scale(country.results$helped.mean)
+
+
 
 # create data for map
 world_map <- map_data("world") %>%
@@ -1195,9 +1202,9 @@ df.world$oecd <- factor(df.world$oecd, levels = c(0,1), labels = c("oecd", "not 
 
 ```{r country-plots, echo=FALSE, eval = FALSE, fig.align="center", fig.width=10, fig.height=8}
 
-# create function plotting preferences
+# create function for plotting v = variable, name = name of variable
 
-global_pref_map <- function(v, name) {
+global_map <- function(v, name) {
   ggplot(df.world, aes(long, lat, group = group)) +
   geom_polygon(aes(fill = v), color = "white", size = .1) +
   scale_fill_gradient2(low = neg.corr.col, mid = "white", high = pos.corr.col, midpoint = 0, na.value = "#ECECEC", name = expression(beta)) +
@@ -1208,21 +1215,21 @@ global_pref_map <- function(v, name) {
 }
 
 #model outputs DV~Age
-p1 <- global_pref_map(df.world$posrecip.age, "Positive Reciprocity ~ Age")
-p2 <- global_pref_map(df.world$negrecip.age, "Negative Reciprocity ~ Age")
-p3 <- global_pref_map(df.world$altruism.age, "Altruism ~ Age")
-p4 <- global_pref_map(df.world$trust.age, "Trust ~ Age")
-global_pref_map(df.world$prosocial_contrib.age, "Prosociality ~ Age")
+p1 <- global_map(df.world$posrecip.age, "Positive Reciprocity ~ Age")
+p2 <- global_map(df.world$negrecip.age, "Negative Reciprocity ~ Age")
+p3 <- global_map(df.world$altruism.age, "Altruism ~ Age")
+p4 <- global_map(df.world$trust.age, "Trust ~ Age")
+global_map(df.world$prosocial_contrib.age, "Prosociality ~ Age")
 
 #grid arrange
 grid.arrange(p1, p2, p3, p4)
 
 #Basic means around the world
-p1 <- global_pref_map(df.world$posrecip.mean, "Positive Reciprocity")
-p2 <- global_pref_map(df.world$negrecip.mean, "Negative Reciprocity")
-p3 <- global_pref_map(df.world$altruism.mean, "Altruism")
-p4 <- global_pref_map(df.world$trust.mean, "Trust")
-global_pref_map(df.world$prosocial_contrib.mean, "Prosociality")
+p1 <- global_map(df.world$posrecip.mean, "Positive Reciprocity")
+p2 <- global_map(df.world$negrecip.mean, "Negative Reciprocity")
+p3 <- global_map(df.world$altruism.mean, "Altruism")
+p4 <- global_map(df.world$trust.mean, "Trust")
+global_map(df.world$prosocial_contrib.mean, "Prosociality")
 
 #grid arrange
 grid.arrange(p1, p2, p3, p4)
@@ -1240,7 +1247,17 @@ ggplot(df.long, aes(long, lat, group = group)) +
   facet_wrap(~pref, labeller = label_value)
 
 #Repeat for behaviours
-global_pref_map(df.world$posrecip.mean, "Positive Reciprocity")
+p1 <- global_map(df.world$donated.mean, "Donated (mean)")
+p2 <- global_map(df.world$volunteered.mean, "Volunteered (mean)")
+p3 <- global_map(df.world$helped.mean, "Helped (mean)")
+
+grid.arrange(p1, p2, p3, ncol = 2)
+
+p1 <- global_map(df.world$donated.age, "Donated ~ Age")
+p2 <- global_map(df.world$volunteered.age, "Volunteered ~ Age")
+p3 <- global_map(df.world$helped.age, "Helped ~ Age")
+
+grid.arrange(p1, p2, p3, ncol = 2)
 
 # plots.map <- plot_grid(world.posrecip, world.negrecip, world.altruism, world.trust,
 #                        align = "v", nrow = 3, labels = "auto", label_size = axtitle-4)
