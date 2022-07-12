@@ -1268,7 +1268,7 @@ for (v in 1:length(prefs)) {
   # Note: model does not converge if gender slope random effect is included
   
   # model.quad <- lmer(outcome ~ gender + financial_wellbeing + physical_wellbeing + subj_math_skills + poly(age,2) * gni +
-  #                      (1 | country) +  
+  #                      (1 | country) +
   #                      # (0 + gender | country) +
   #                      (0 + financial_wellbeing | country) +
   #                      (0 + physical_wellbeing | country) +
@@ -1337,13 +1337,16 @@ tab_model(mod_behav[[1]], mod_behav[[2]], mod_behav[[3]], transform = NULL)
 
 ```{r Family-moderation, eval = FALSE, echo = FALSE, warning = FALSE}
 
-# Add country level Family variable to data-frame
+# Add country level 'Family' variable to data-frame
 
 # Load previously saved Dataframe from WVS_analysis.Rmd
 load("family.Rda")
 #Join to dataframe
 df <- left_join(df, fam_df, by = "isocode")
+#Standardise
+df$family <- scale(df$family)
 
+# 1. Re-run PREFERENCE models with FAMILY
 
 mod_pref <- list()
 
@@ -1360,7 +1363,7 @@ for (v in 1:length(prefs)) {
   # For speed of plotting cut out the model if required
   # Note: model does not converge if gender slope random effect is included
   
-  model.quad <- lmer(outcome ~ gender + financial_wellbeing + physical_wellbeing + subj_math_skills + poly(age,2) * gni +
+  model.quad <- lmer(outcome ~ gender + financial_wellbeing + physical_wellbeing + subj_math_skills + poly(age,2) * family +
                        (1 | country) +
                        # (0 + gender | country) +
                        (0 + financial_wellbeing | country) +
@@ -1369,17 +1372,61 @@ for (v in 1:length(prefs)) {
                        (0 + age | country),
                      data = df.mod, control = lmerControl(optimizer="bobyqa", optCtrl=list(maxfun=2e5)))
 
-  save(model.quad, file = paste0("output/",pref.lab, "_GNI_model.RData"))
-  #load(file = paste0("output/",pref.lab, "_GNI_model.RData"))
+  save(model.quad, file = paste0("output/",pref.lab, "_family_model.RData"))
+  #load(file = paste0("output/",pref.lab, "_family_model.RData"))
   
   #save html table to file (note: print is required as sjPlot does not render in Rmd)
 
-  print(tab_model(model.quad, file = paste0(pref.lab, "_GNI_model.html")))
+  print(tab_model(model.quad, file = paste0(pref.lab, "_family_model.html")))
   mod_pref[[v]] <- model.quad
   
 }
 
 tab_model(mod_pref[[1]], mod_pref[[2]], mod_pref[[3]], mod_pref[[4]], mod_pref[[5]])
 
+
+ # 2. Re-run BEHAVIOUR models with FAMILY
+
+mod_behav <- list()
+
+for (v in 1:length(behavs)) {
+
+  behav <- behavs[v]
+  behav.lab <- behav.labs[v]
+  
+  # create dataframe for modelling/plotting cycling through outcome variables one by one
+  df.mod <- df %>% 
+    dplyr::rename("outcome" = paste(behav)) %>% 
+    drop_na(c("outcome"))
+  
+  # For SPEED of plotting cut out the model if required
+  
+  model.quad <- glmer(outcome ~ gender + 
+                      financial_wellbeing + physical_wellbeing + subj_math_skills + poly(age,2) * family +
+                      (1 | country) +
+                      #(0 + gender | country) + #removed to prevent singular fit
+                      #(0 + financial_wellbeing | country) +
+                      #(0 + physical_wellbeing | country) +
+                      (0 + subj_math_skills | country) +
+                      (0 + age | country),
+                      nAGQ = 0, # speeds things up!
+                      data = df.mod, family = "binomial", control = glmerControl(optimizer="bobyqa", optCtrl=list(maxfun=2e5)))
+  # 
+  # 
+  # 
+  # # save the model
+  save(model.quad, file = paste0("output/",behav.lab, "_family_model.RData"))
+  
+  #load previously created model
+  #load(file = paste0("output/",behav.lab, "_family_model.RData"))
+  mod_behav[[v]] <- model.quad
+
+  #save html summary table to file
+
+  print(tab_model(model.quad, transform = NULL, file = paste0(behav.lab, "_family_model.html")))
+  
+}
+
+tab_model(mod_behav[[1]], mod_behav[[2]], mod_behav[[3]], transform = NULL)
 
 ```
