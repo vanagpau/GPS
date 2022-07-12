@@ -1268,7 +1268,7 @@ grid.arrange(p1, p2, p3, ncol = 2)
 
 ## GNI/Family Ties analysis
 
-```{r economic-social-moderation, eval = TRUE, echo = FALSE, warnings = FALSE}
+```{r economic-social-moderation, eval = TRUE, echo = FALSE, warning = FALSE}
 
 ## Re-run models with GNI data
 
