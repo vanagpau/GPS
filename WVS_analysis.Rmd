@@ -24,41 +24,24 @@ setwd(cur_dir)
 ## IMPORT DATA
 ```{r import-data}
 
-load("data/World_Values_Survey_wave7/WV4_Data_R_v20201117.RData")
+load("data/World_Values_Survey_wave6/WV6_Data_R_v20201117.RData")
 
-WV4 <- WV4_Data_R_v20201117
+WV6 <- WV6_Data_R_v20201117
 
-rm(WV4_Data_R_v20201117)
+rm(WV6_Data_R_v20201117)
 
 ```
 
-```{r PCA}
-
-# without weighting, with neg reciprocity
-df.dropna <- WV4 %>% drop_na(c("V4", "V13", "V14")) %>% 
-  select(V4, V13, V14)
-
-cor(df.dropna[,c("V4", "V13", "V14")])
-
-dat.pca <- prcomp(df.dropna[,c("V4", "V13", "V14")], scale = TRUE)
-
-summary(dat.pca)
-
-fviz_eig(dat.pca)
-
-fviz_pca_var(dat.pca,
-             col.var = "contrib", # Color by contributions to the PC
-             gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"),
-             repel = TRUE     # Avoid text overlapping
-)
-
-get_eigenvalue(dat.pca)
 
 
-#loadings of variable on each component
-dat.pca$rotation
+```{r }
 
-dat.var <- get_pca_var(dat.pca)
-dat.var$contrib        # Contributions to the Principal Component
+# reverse scoring so more importance = larger number
+WV6$V4 <- 5 - WV6$V4
+
+#create dataframe of ISOCODE and mean Family score
+fam_df <- WV6 %>% group_by(C_COW_ALPHA) %>% summarise(family = mean(V4, na.rm = TRUE)) %>% rename("isocode" = "C_COW_ALPHA")
+
+save(fam_df,file="family.Rda")
 
 ```
