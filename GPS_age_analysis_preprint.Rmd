@@ -1244,9 +1244,9 @@ grid.arrange(p1, p2, p3, ncol = 2)
 
 ```
 
-## GNI/Family Ties analysis
+## GNI moderator
 
-```{r economic-social-moderation, eval = TRUE, echo = FALSE, warning = FALSE}
+```{r GNI-moderation, eval = TRUE, echo = FALSE, warning = FALSE}
 
 ## Re-run models with GNI data
 
@@ -1330,5 +1330,56 @@ for (v in 1:length(behavs)) {
 }
 
 tab_model(mod_behav[[1]], mod_behav[[2]], mod_behav[[3]], transform = NULL)
+
+```
+
+## Family moderator
+
+```{r Family-moderation, eval = FALSE, echo = FALSE, warning = FALSE}
+
+# Add country level Family variable to data-frame
+
+# Load previously saved Dataframe from WVS_analysis.Rmd
+load("family.Rda")
+#Join to dataframe
+df <- left_join(df, fam_df, by = "isocode")
+
+
+mod_pref <- list()
+
+for (v in 1:length(prefs)) {
+
+  pref <- prefs[v]
+  pref.lab <- pref.labs[v]
+  
+  # create dataframe for modelling/plotting cycling through outcome variables one by one
+  df.mod <- df %>% 
+    dplyr::rename("outcome" = paste(pref)) %>% 
+    drop_na(c("outcome"))
+  
+  # For speed of plotting cut out the model if required
+  # Note: model does not converge if gender slope random effect is included
+  
+  model.quad <- lmer(outcome ~ gender + financial_wellbeing + physical_wellbeing + subj_math_skills + poly(age,2) * gni +
+                       (1 | country) +
+                       # (0 + gender | country) +
+                       (0 + financial_wellbeing | country) +
+                       (0 + physical_wellbeing | country) +
+                       (0 + subj_math_skills | country) +
+                       (0 + age | country),
+                     data = df.mod, control = lmerControl(optimizer="bobyqa", optCtrl=list(maxfun=2e5)))
+
+  save(model.quad, file = paste0("output/",pref.lab, "_GNI_model.RData"))
+  #load(file = paste0("output/",pref.lab, "_GNI_model.RData"))
+  
+  #save html table to file (note: print is required as sjPlot does not render in Rmd)
+
+  print(tab_model(model.quad, file = paste0(pref.lab, "_GNI_model.html")))
+  mod_pref[[v]] <- model.quad
+  
+}
+
+tab_model(mod_pref[[1]], mod_pref[[2]], mod_pref[[3]], mod_pref[[4]], mod_pref[[5]])
+
 
 ```
