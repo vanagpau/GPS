@@ -369,7 +369,7 @@ df$prosocial_wgt_l <- df$prosocial_load * df$wgt
 
 ## DESCRIPTIVES + Data VISUALISATION
 
-```{r descriptives, eval = FALSE, echo=FALSE, warning=FALSE, message=FALSE}
+```{r descriptives, eval = TRUE, echo=FALSE, warning=FALSE, message=FALSE}
 
 #sum((df$gender) == "Male")
 #sum((df$gender) == "Female")
@@ -663,7 +663,7 @@ kable(r.lin.behav,
 
 ## Plotting and modelling each individual PREFERENCE
 
-```{r pref-models-plots, eval = FALSE, echo=FALSE, message=FALSE, warning=FALSE, results='asis'}
+```{r pref-models-plots, eval = TRUE, echo=FALSE, message=FALSE, warning=FALSE, results='asis'}
 
 #Overall effects
 
@@ -673,9 +673,9 @@ for (v in 1:length(prefs)) {
   pref.lab <- pref.labs[v]
   
   # create dataframe for modelling/plotting cycling through outcome variables one by one
-  # df.mod <- df %>% 
-  #   dplyr::rename("outcome" = paste(pref)) %>% 
-  #   drop_na(c("outcome"))
+  df.mod <- df %>%
+    dplyr::rename("outcome" = paste(pref)) %>%
+    drop_na(c("outcome"))
   
   # For SPEED of plotting cut out the model if required
   
@@ -738,7 +738,7 @@ for (v in 1:length(prefs)) {
   
   #first extract terms
   assign(paste0("linear.term",v), as.numeric(as_tibble(model_parameters(model.quad, effects = "fixed")) %>% filter(Parameter == "poly(age, 2)1") %>% select(Coefficient)))
-  assign(poaste0("quadratic.term",v), as.numeric(as_tibble(model_parameters(model.quad, effects = "fixed")) %>% filter(Parameter == "poly(age, 2)2") %>% select(Coefficient)))
+  assign(paste0("quadratic.term",v), as.numeric(as_tibble(model_parameters(model.quad, effects = "fixed")) %>% filter(Parameter == "poly(age, 2)2") %>% select(Coefficient)))
   
  
   # plot.age.continent <- plot.age + facet_wrap("continent")
@@ -794,7 +794,7 @@ p2
 
 ## Plotting and modelling each individual BEHAVIOUR
 
-```{r behav-models-plots, eval = FALSE, echo=FALSE, message=FALSE, warning=FALSE, results='asis'}
+```{r behav-models-plots, eval = TRUE, echo=FALSE, message=FALSE, warning=FALSE, results='asis'}
 
 #Overall effects
 
@@ -934,7 +934,7 @@ grid.arrange(p6, p7, p8, ncol = 2)
 
 ## MODEL COMPARISONS
 
-```{r model-comparisons, eval = FALSE, echo = FALSE}
+```{r model-comparisons, eval = TRUE, echo = FALSE}
 
 #Preferences models
 
@@ -1038,7 +1038,7 @@ aictab(cand.set = models, modnames = model.names, REML = FALSE) %>%
 
 ## Quantification of effects in each country 
 
-```{r country-effects, echo=FALSE, eval = FALSE, warning=FALSE, fig.align="center", fig.width=10, fig.height=8}
+```{r country-effects, echo=FALSE, eval = TRUE, warning=FALSE, fig.align="center", fig.width=10, fig.height=8}
 
 # cntry.list <- read.csv("data/List_countries.csv", sep = ",", header = TRUE) # list of countries
 cntry.list <- df %>%   select(c("isocode", "country"))
@@ -1178,7 +1178,7 @@ df.world$oecd <- factor(df.world$oecd, levels = c(0,1), labels = c("oecd", "not 
 
 # Map plots - preferences and behaviours
 
-```{r country-plots, echo=FALSE, eval = FALSE, fig.align="center", fig.width=10, fig.height=8}
+```{r country-plots, echo=FALSE, eval = TRUE, fig.align="center", fig.width=10, fig.height=8}
 
 # create function for plotting v = variable, name = name of variable
 
