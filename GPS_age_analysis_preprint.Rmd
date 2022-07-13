@@ -369,7 +369,7 @@ df$prosocial_wgt_l <- df$prosocial_load * df$wgt
 
 ## DESCRIPTIVES + Data VISUALISATION
 
-```{r descriptives, eval = TRUE, echo=FALSE, warning=FALSE, message=FALSE}
+```{r descriptives, eval = FALSE, echo=FALSE, warning=FALSE, message=FALSE}
 
 #sum((df$gender) == "Male")
 #sum((df$gender) == "Female")
@@ -490,7 +490,7 @@ ggplot(df,aes(x=prosocial_contrib, col=gender)) + geom_boxplot(alpha=0.2) + them
 
 ## Overall preferences and behaviour models
 
-```{r overall-models, eval = TRUE, echo=FALSE}
+```{r overall-models, eval = FALSE, echo=FALSE}
 
 ## NOTE: models take time to run, so are hashed out, previously run model objects are loaded in from file
 
@@ -663,7 +663,7 @@ kable(r.lin.behav,
 
 ## Plotting and modelling each individual PREFERENCE
 
-```{r pref-models-plots, eval = TRUE, echo=FALSE, message=FALSE, warning=FALSE, results='asis'}
+```{r pref-models-plots, eval = FAlSE, echo=FALSE, message=FALSE, warning=FALSE, results='asis'}
 
 #Overall effects
 
@@ -794,7 +794,7 @@ p2
 
 ## Plotting and modelling each individual BEHAVIOUR
 
-```{r behav-models-plots, eval = TRUE, echo=FALSE, message=FALSE, warning=FALSE, results='asis'}
+```{r behav-models-plots, eval = FALSE, echo=FALSE, message=FALSE, warning=FALSE, results='asis'}
 
 #Overall effects
 
@@ -934,7 +934,7 @@ grid.arrange(p6, p7, p8, ncol = 2)
 
 ## MODEL COMPARISONS
 
-```{r model-comparisons, eval = TRUE, echo = FALSE}
+```{r model-comparisons, eval = FALSE, echo = FALSE}
 
 #Preferences models
 
@@ -1038,7 +1038,7 @@ aictab(cand.set = models, modnames = model.names, REML = FALSE) %>%
 
 ## Quantification of effects in each country 
 
-```{r country-effects, echo=FALSE, eval = TRUE, warning=FALSE, fig.align="center", fig.width=10, fig.height=8}
+```{r country-effects, echo=FALSE, eval = FALSE, warning=FALSE, fig.align="center", fig.width=10, fig.height=8}
 
 # cntry.list <- read.csv("data/List_countries.csv", sep = ",", header = TRUE) # list of countries
 cntry.list <- df %>%   select(c("isocode", "country"))
@@ -1178,7 +1178,7 @@ df.world$oecd <- factor(df.world$oecd, levels = c(0,1), labels = c("oecd", "not 
 
 # Map plots - preferences and behaviours
 
-```{r country-plots, echo=FALSE, eval = TRUE, fig.align="center", fig.width=10, fig.height=8}
+```{r country-plots, echo=FALSE, eval = FALSE, fig.align="center", fig.width=10, fig.height=8}
 
 # create function for plotting v = variable, name = name of variable
 
@@ -1335,7 +1335,7 @@ tab_model(mod_behav[[1]], mod_behav[[2]], mod_behav[[3]], transform = NULL)
 
 ## Family moderator
 
-```{r Family-moderation, eval = FALSE, echo = FALSE, warning = FALSE}
+```{r Family-moderation, eval = TRUE, echo = FALSE, warning = FALSE}
 
 # Add country level 'Family' variable to data-frame
 
@@ -1363,17 +1363,17 @@ for (v in 1:length(prefs)) {
   # For speed of plotting cut out the model if required
   # Note: model does not converge if gender slope random effect is included
   
-  model.quad <- lmer(outcome ~ gender + financial_wellbeing + physical_wellbeing + subj_math_skills + poly(age,2) * family +
-                       (1 | country) +
-                       # (0 + gender | country) +
-                       (0 + financial_wellbeing | country) +
-                       (0 + physical_wellbeing | country) +
-                       (0 + subj_math_skills | country) +
-                       (0 + age | country),
-                     data = df.mod, control = lmerControl(optimizer="bobyqa", optCtrl=list(maxfun=2e5)))
-
-  save(model.quad, file = paste0("output/",pref.lab, "_family_model.RData"))
-  #load(file = paste0("output/",pref.lab, "_family_model.RData"))
+  # model.quad <- lmer(outcome ~ gender + financial_wellbeing + physical_wellbeing + subj_math_skills + poly(age,2) * family +
+  #                      (1 | country) +
+  #                      # (0 + gender | country) +
+  #                      (0 + financial_wellbeing | country) +
+  #                      (0 + physical_wellbeing | country) +
+  #                      (0 + subj_math_skills | country) +
+  #                      (0 + age | country),
+  #                    data = df.mod, control = lmerControl(optimizer="bobyqa", optCtrl=list(maxfun=2e5)))
+  # 
+  # save(model.quad, file = paste0("output/",pref.lab, "_family_model.RData"))
+  load(file = paste0("output/",pref.lab, "_family_model.RData"))
   
   #save html table to file (note: print is required as sjPlot does not render in Rmd)
 
@@ -1400,25 +1400,25 @@ for (v in 1:length(behavs)) {
     drop_na(c("outcome"))
   
   # For SPEED of plotting cut out the model if required
-  
-  model.quad <- glmer(outcome ~ gender + 
-                      financial_wellbeing + physical_wellbeing + subj_math_skills + poly(age,2) * family +
-                      (1 | country) +
-                      #(0 + gender | country) + #removed to prevent singular fit
-                      #(0 + financial_wellbeing | country) +
-                      #(0 + physical_wellbeing | country) +
-                      (0 + subj_math_skills | country) +
-                      (0 + age | country),
-                      nAGQ = 0, # speeds things up!
-                      data = df.mod, family = "binomial", control = glmerControl(optimizer="bobyqa", optCtrl=list(maxfun=2e5)))
-  # 
-  # 
-  # 
-  # # save the model
-  save(model.quad, file = paste0("output/",behav.lab, "_family_model.RData"))
+
+  # model.quad <- glmer(outcome ~ gender +
+  #                     financial_wellbeing + physical_wellbeing + subj_math_skills + poly(age,2) * family +
+  #                     (1 | country) +
+  #                     #(0 + gender | country) + #removed to prevent singular fit
+  #                     #(0 + financial_wellbeing | country) + #removed to prevent singular fit
+  #                     (0 + physical_wellbeing | country) +
+  #                     (0 + subj_math_skills | country) +
+  #                     (0 + age | country),
+  #                     nAGQ = 0, # speeds things up!
+  #                     data = df.mod, family = "binomial", control = glmerControl(optimizer="bobyqa", optCtrl=list(maxfun=2e5)))
+
+
+
+  # save the model
+  # save(model.quad, file = paste0("output/",behav.lab, "_family_model.RData"))
   
   #load previously created model
-  #load(file = paste0("output/",behav.lab, "_family_model.RData"))
+  load(file = paste0("output/",behav.lab, "_family_model.RData"))
   mod_behav[[v]] <- model.quad
 
   #save html summary table to file
