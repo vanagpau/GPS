@@ -57,6 +57,8 @@ m2 <- glm(prosociality ~ behav*poly(subj_age, 2), family = "binomial", data = da
 summary(m2)
 
 #Akaike weight method
+mA <- lm(subj_age ~ behav1 + behav2 + behav3, data = data)
+
 mA1 <- lm(subj_age ~ behav1, data = data)
 summary(mA1)
 mA2 <- lm(subj_age ~ behav2, data = data)
@@ -66,6 +68,8 @@ summary(mA3)
 
 AICcmodavg::aictab(cand.set  = list(mA1, mA2, mA3), modnames = c("Linear +ve", "None", "Exp -ve"))
 AICcmodavg::aictab(cand.set  = list(mA2, mA3), modnames = c("None", "Exp -ve"))
+
+AICcmodavg::aictab(cand.set  = list(mA, mA1, mA2, mA3), modnames = c("Full", "Linear +ve", "None", "Exp -ve"))
 
 #Run to knit doc
 #knitr::spin("C:/Users/paulv/Documents/R/GPS/Model comparison dummy data.r")
