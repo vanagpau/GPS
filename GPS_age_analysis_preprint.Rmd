@@ -382,7 +382,7 @@ df$prosocial_wgt_l <- df$prosocial_load * df$wgt
 
 ## DESCRIPTIVES + Data VISUALISATION
 
-```{r descriptives, eval = TRUE, echo=FALSE, warning=FALSE, message=FALSE}
+```{r descriptives, eval = FALSE, echo=FALSE, warning=FALSE, message=FALSE}
 
 #sum((df$gender) == "Male")
 #sum((df$gender) == "Female")
@@ -503,7 +503,7 @@ ggplot(df,aes(x=prosocial_contrib, col=gender)) + geom_boxplot(alpha=0.2) + them
 
 ## Overall preference and behaviour models - for differences
 
-```{r overall-models, eval = FALSE, echo=FALSE}
+```{r overall-models, eval = TRUE, echo=FALSE}
 
 ## NOTE: models take time to run, so are hashed out, previously run model objects are loaded in from file
 
@@ -529,33 +529,33 @@ df.pref$pref <- relevel(df.pref$pref, ref = paste0(df.pref$pref[v]))
 
 # Run PREFERENCES QUADRATIC model with INTERACTION TERM
 
-model.quad.pref <- lmer(prosociality ~ gender + financial_wellbeing + physical_wellbeing + subj_math_skills + poly(age,2)*pref  +
-                     #(1 | id:country) +
-                     (1 | country) +
-                     #(0 + gender | country) +
-                     (0 + financial_wellbeing | country) +
-                     (0 + physical_wellbeing | country) +
-                     (0 + subj_math_skills | country) +
-                     (0 + age | country),
-                     data = df.pref, control = lmerControl(optimizer="bobyqa", optCtrl=list(maxfun=2e5)))
-
-save(model.quad.pref, file = paste0("output/Pref_quad_mod_refcat_",df.pref$pref[v],".RData"))
+# model.quad.pref <- lmer(prosociality ~ gender + financial_wellbeing + physical_wellbeing + subj_math_skills + poly(age,2)*pref  +
+#                      #(1 | id:country) +
+#                      (1 | country) +
+#                      #(0 + gender | country) +
+#                      (0 + financial_wellbeing | country) +
+#                      (0 + physical_wellbeing | country) +
+#                      (0 + subj_math_skills | country) +
+#                      (0 + age | country),
+#                      data = df.pref, control = lmerControl(optimizer="bobyqa", optCtrl=list(maxfun=2e5)))
+# 
+# save(model.quad.pref, file = paste0("output/Pref_quad_mod_refcat_",df.pref$pref[v],".RData"))
 
 # Linear only PREFERENCE model
 
-model.lin.pref <- lmer(prosociality ~ gender + financial_wellbeing + physical_wellbeing + subj_math_skills + age*pref + (1 | country) +
-           (0 + financial_wellbeing | country) +
-           (0 + physical_wellbeing | country) +
-           (0 + subj_math_skills | country) +
-           (0 + age | country),
-           data = df.pref, control = lmerControl(optimizer="bobyqa", optCtrl=list(maxfun=2e5)))
-
-save(model.lin.pref, file = paste0("output/Pref_lin_mod_refcat_",df.pref$pref[v],".RData"))
+# model.lin.pref <- lmer(prosociality ~ gender + financial_wellbeing + physical_wellbeing + subj_math_skills + age*pref + (1 | country) +
+#            (0 + financial_wellbeing | country) +
+#            (0 + physical_wellbeing | country) +
+#            (0 + subj_math_skills | country) +
+#            (0 + age | country),
+#            data = df.pref, control = lmerControl(optimizer="bobyqa", optCtrl=list(maxfun=2e5)))
+# 
+# save(model.lin.pref, file = paste0("output/Pref_lin_mod_refcat_",df.pref$pref[v],".RData"))
 
 #load pre-existing model objects for PREFERENCES
 
-# load(paste0("output/Pref_lin_mod_refcat_",pref[v],".RData"))
-# load(paste0("output/Pref_quad_mod_refcat_",pref[v],".RData"))
+load(paste0("output/Pref_lin_mod_refcat_",df.pref$pref[v],".RData"))
+load(paste0("output/Pref_quad_mod_refcat_",df.pref$pref[v],".RData"))
 
 # extract model parameters
 
@@ -570,6 +570,9 @@ r.quad.pref <- results.quad.pref %>%
   mutate(Parameter = str_replace(Parameter, pattern = "gender1", replacement = "gender")) %>%
   mutate(Parameter = str_replace(Parameter, pattern = fixed("poly(age, 2)1"), replacement = "linear effect of age")) %>%
   mutate(Parameter = str_replace(Parameter, pattern = fixed("poly(age, 2)2"), replacement = "quadratic effect of age")) 
+
+print("Quadratic mixed-effects model predicting prosocial preferences")
+print(r.quad.pref)
 
 r.quad.pref$p[!is.na(r.quad.pref$p)] <- pvalr(r.quad.pref$p[!is.na(r.quad.pref$p)])
 kable(r.quad.pref,
@@ -587,6 +590,10 @@ r.lin.pref <- results.lin.pref %>%
   mutate(Parameter = str_replace_all(Parameter, pattern = ":", replacement = " * ")) %>% # for interactions
   mutate(Parameter = str_replace(Parameter, pattern = "gender1", replacement = "gender")) %>%
   mutate(Parameter = str_replace(Parameter, pattern = fixed("poly(age, 2)1"), replacement = "linear effect of age")) 
+
+print("Linear mixed-effects model predicting prosocial preferences")
+print(r.lin.pref)
+
 
 r.lin.pref$p[!is.na(r.lin.pref$p)] <- pvalr(r.lin.pref$p[!is.na(r.lin.pref$p)])
 kable(r.lin.pref,
@@ -621,44 +628,44 @@ df.behav$behav <- relevel(df.behav$behav, ref = paste0(df.behav$behav[v]))
 
 # Run QUADRATIC model of BEHAVIOURS with interaction term = model.quad.behaviours
 
-tic <- Sys.time()
-model.quad.behav <- glmer (prosociality ~ poly(age,2)*behav + gender + financial_wellbeing + physical_wellbeing + subj_math_skills +
-                             #(1 | id:country) +
-                             (1 | country) +
-                             #(0 + gender | country) +
-                             (0 + financial_wellbeing | country) +
-                             (0 + physical_wellbeing | country) +
-                             (0 + subj_math_skills | country) +
-                             (0 + age | country),
-                     data = df.behav,
-                     family = "binomial",
-                     nAGQ = 0,
-                     control = glmerControl(optimizer="nloptwrap", optCtrl=list(maxfun=2e5))
-                            )
-toc <-  Sys.time()
-toc-tic
-
-save(model.quad.behav, file = paste0("output/Behav_quad_mod_refcat_",df.behav$behav[v],".RData"))
+# tic <- Sys.time()
+# model.quad.behav <- glmer (prosociality ~ poly(age,2)*behav + gender + financial_wellbeing + physical_wellbeing + subj_math_skills +
+#                              #(1 | id:country) +
+#                              (1 | country) +
+#                              #(0 + gender | country) +
+#                              (0 + financial_wellbeing | country) +
+#                              (0 + physical_wellbeing | country) +
+#                              (0 + subj_math_skills | country) +
+#                              (0 + age | country),
+#                      data = df.behav,
+#                      family = "binomial",
+#                      nAGQ = 0,
+#                      control = glmerControl(optimizer="nloptwrap", optCtrl=list(maxfun=2e5))
+#                             )
+# toc <-  Sys.time()
+# toc-tic
+# 
+# save(model.quad.behav, file = paste0("output/Behav_quad_mod_refcat_",df.behav$behav[v],".RData"))
 
 
 # Run LINEAR model of BEHAVIOURS with interaction term = model.lin.behav
+# 
+# model.lin.behav <- glmer(prosociality ~ gender + financial_wellbeing + physical_wellbeing + subj_math_skills + age*behav +
+#                      #(1 | id:country) +
+#                        (1 | country) +
+#                        #(0 + gender | country) +
+#                      (0 + financial_wellbeing | country) +
+#                        (0 + physical_wellbeing | country) +
+#                        (0 + subj_math_skills | country) +
+#                      (0 + age | country),
+#                      nAGQ = 0,
+#                      data = df.behav, family = "binomial", control = glmerControl(optimizer="bobyqa", optCtrl=list(maxfun=2e5)))
+# 
+# save(model.lin.behav, file = paste0("output/Behav_lin_mod_refcat_",df.behav$behav[v],".RData"))
 
-model.lin.behav <- glmer(prosociality ~ gender + financial_wellbeing + physical_wellbeing + subj_math_skills + age*behav +
-                     #(1 | id:country) +
-                       (1 | country) +
-                       #(0 + gender | country) +
-                     (0 + financial_wellbeing | country) +
-                       (0 + physical_wellbeing | country) +
-                       (0 + subj_math_skills | country) +
-                     (0 + age | country),
-                     nAGQ = 0,
-                     data = df.behav, family = "binomial", control = glmerControl(optimizer="bobyqa", optCtrl=list(maxfun=2e5)))
 
-save(model.lin.behav, file = paste0("output/Behav_lin_mod_refcat_",df.behav$behav[v],".RData"))
-
-
-# load(paste0("output/Behav_lin_mod_refcat_",behav[v],".RData"))
-# load(paste0("output/Behav_quad_mod_refcat_",behav[v],".RData"))
+load(paste0("output/Behav_lin_mod_refcat_",df.behav$behav[v],".RData"))
+load(paste0("output/Behav_quad_mod_refcat_",df.behav$behav[v],".RData"))
 
 
 results.quad.behav <- model_parameters(model.quad.behav, exponentiate = T, effects = "fixed")
@@ -670,6 +677,9 @@ r.quad.behav <- results.quad.behav %>%
   mutate(Parameter = str_replace(Parameter, pattern = "gender1", replacement = "gender")) %>%
   mutate(Parameter = str_replace(Parameter, pattern = fixed("poly(age, 2)1"), replacement = "linear effect of age")) %>%
   mutate(Parameter = str_replace(Parameter, pattern = fixed("poly(age, 2)2"), replacement = "quadratic effect of age"))
+
+print("Quadratic mixed-effects model predicting prosocial behaviours")
+print(r.quad.behav)
 
 r.quad.behav$p[!is.na(r.quad.behav$p)] <- pvalr(r.quad.behav$p[!is.na(r.quad.behav$p)])
 
@@ -687,6 +697,9 @@ r.lin.behav <- results.lin.behav %>%
   mutate(Parameter = str_replace(Parameter, pattern = "gender1", replacement = "gender")) %>%
   mutate(Parameter = str_replace(Parameter, pattern = fixed("poly(age, 2)1"), replacement = "linear effect of age")) 
 
+print("Linear mixed-effects model predicting prosocial behaviours")
+print(r.lin.behav)
+
 r.lin.behav$p[!is.na(r.lin.behav$p)] <- pvalr(r.lin.behav$p[!is.na(r.lin.behav$p)])
 kable(r.lin.behav,
       align = c('l',rep('c',(ncol(r.lin.behav)-1))),
@@ -701,7 +714,7 @@ kable(r.lin.behav,
 
 ## Plotting and modelling each individual PREFERENCE
 
-```{r pref-models-plots, eval = TRUE, echo=FALSE, message=FALSE, warning=FALSE, results='asis'}
+```{r pref-models-plots, eval = FALSE, echo=FALSE, message=FALSE, warning=FALSE, results='asis'}
 
 #Overall effects
 
@@ -832,7 +845,7 @@ p2
 
 ## Plotting and modelling each individual BEHAVIOUR
 
-```{r behav-models-plots, eval = TRUE, echo=FALSE, message=FALSE, warning=FALSE, results='asis'}
+```{r behav-models-plots, eval = FALSE, echo=FALSE, message=FALSE, warning=FALSE, results='asis'}
 
 #Overall effects
 
@@ -972,7 +985,7 @@ grid.arrange(p6, p7, p8, ncol = 2)
 
 ## MODEL COMPARISONS AKAIKE method
 
-```{r model-comparisons, eval = TRUE, echo = FALSE}
+```{r model-comparisons, eval = FALSE, echo = FALSE}
 
 #Preferences models
 
@@ -1076,7 +1089,7 @@ aictab(cand.set = models, modnames = model.names, REML = FALSE) %>%
 
 ## Quantification of effects in each country 
 
-```{r country-effects, echo=FALSE, eval = TRUE, warning=FALSE, fig.align="center", fig.width=10, fig.height=8}
+```{r country-effects, echo=FALSE, eval = FALSE, warning=FALSE, fig.align="center", fig.width=10, fig.height=8}
 
 # cntry.list <- read.csv("data/List_countries.csv", sep = ",", header = TRUE) # list of countries
 cntry.list <- df %>%   select(c("isocode", "country"))
@@ -1216,7 +1229,7 @@ df.world$oecd <- factor(df.world$oecd, levels = c(0,1), labels = c("oecd", "not 
 
 # Map plots - preferences and behaviours
 
-```{r country-plots, echo=FALSE, eval = TRUE, fig.align="center", fig.width=10, fig.height=8}
+```{r country-plots, echo=FALSE, eval = FALSE, fig.align="center", fig.width=10, fig.height=8}
 
 # create function for plotting v = variable, name = name of variable
 
@@ -1284,7 +1297,7 @@ grid.arrange(p1, p2, p3, ncol = 2)
 
 ## GNI moderator
 
-```{r GNI-moderation, eval = TRUE, echo = FALSE, warning = FALSE}
+```{r GNI-moderation, eval = FALSE, echo = FALSE, warning = FALSE}
 
 ## Re-run models with GNI data
 
@@ -1373,7 +1386,7 @@ tab_model(mod_behav[[1]], mod_behav[[2]], mod_behav[[3]], transform = NULL)
 
 ## Family moderator
 
-```{r Family-moderation, eval = TRUE, echo = FALSE, warning = FALSE}
+```{r Family-moderation, eval = FALSE, echo = FALSE, warning = FALSE}
 
 
 # 1. Re-run PREFERENCE models with FAMILY
