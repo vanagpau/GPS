@@ -574,11 +574,15 @@ r.quad.pref <- results.quad.pref %>%
 print("Quadratic mixed-effects model predicting prosocial preferences")
 print(r.quad.pref)
 
+t <- kable(r.quad.pref) %>%  kable_styling()
+save_kable(t, file = paste0("table_","Pref_quad_mod_refcat_",df.pref$pref[v],".html"))
+
 r.quad.pref$p[!is.na(r.quad.pref$p)] <- pvalr(r.quad.pref$p[!is.na(r.quad.pref$p)])
-kable(r.quad.pref,
-      align = c('l',rep('c',(ncol(r.quad.pref)-1))),
-      caption = paste0("Quadratic mixed-effects model predicting prosocial preferences")) %>%
-  kable_styling()
+
+# kable(r.quad.pref,
+#       align = c('l',rep('c',(ncol(r.quad.pref)-1))),
+#       caption = paste0("Quadratic mixed-effects model predicting prosocial preferences")) %>%
+#   kable_styling()
 
 # Make and display table of PREFERENCE model LINEAR effects
 
@@ -593,7 +597,6 @@ r.lin.pref <- results.lin.pref %>%
 
 print("Linear mixed-effects model predicting prosocial preferences")
 print(r.lin.pref)
-
 
 r.lin.pref$p[!is.na(r.lin.pref$p)] <- pvalr(r.lin.pref$p[!is.na(r.lin.pref$p)])
 kable(r.lin.pref,
@@ -668,7 +671,7 @@ load(paste0("output/Behav_lin_mod_refcat_",df.behav$behav[v],".RData"))
 load(paste0("output/Behav_quad_mod_refcat_",df.behav$behav[v],".RData"))
 
 
-results.quad.behav <- model_parameters(model.quad.behav, exponentiate = T, effects = "fixed")
+results.quad.behav <- model_parameters(model.quad.behav, exponentiate = FALSE, effects = "fixed")
 
 r.quad.behav <- results.quad.behav %>%
   filter(Effects == "fixed") %>%
@@ -681,14 +684,17 @@ r.quad.behav <- results.quad.behav %>%
 print("Quadratic mixed-effects model predicting prosocial behaviours")
 print(r.quad.behav)
 
+t <- kable(r.quad.behav) %>%  kable_styling()
+save_kable(t, file = paste0("table_","Behav_quad_mod_refcat_",df.behav$behav[v],".html"))
+
 r.quad.behav$p[!is.na(r.quad.behav$p)] <- pvalr(r.quad.behav$p[!is.na(r.quad.behav$p)])
 
-kable(r.quad.behav,
-      align = c('l',rep('c',(ncol(r.quad.behav)-1))),
-      caption = paste0("Quadratic mixed-effects model predicting prosocial behaviours")) %>%
-  kable_styling()
+# kable(r.quad.behav,
+#       align = c('l',rep('c',(ncol(r.quad.behav)-1))),
+#       caption = paste0("Quadratic mixed-effects model predicting prosocial behaviours")) %>%
+#   kable_styling()
 
-results.lin.behav <- model_parameters(model.lin.behav, exponentiate = T, effects = "fixed")
+results.lin.behav <- model_parameters(model.lin.behav, exponentiate = FALSE, effects = "fixed")
 
 r.lin.behav <- results.lin.behav %>%
   filter(Effects == "fixed") %>%
