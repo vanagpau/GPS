@@ -382,7 +382,7 @@ df$prosocial_wgt_l <- df$prosocial_load * df$wgt
 
 ## DESCRIPTIVES + Data VISUALISATION
 
-```{r descriptives, eval = FALSE, echo=FALSE, warning=FALSE, message=FALSE}
+```{r descriptives, eval = TRUE, echo=FALSE, warning=FALSE, message=FALSE}
 
 #sum((df$gender) == "Male")
 #sum((df$gender) == "Female")
@@ -720,7 +720,7 @@ kable(r.lin.behav,
 
 ## Plotting and modelling each individual PREFERENCE
 
-```{r pref-models-plots, eval = FALSE, echo=FALSE, message=FALSE, warning=FALSE, results='asis'}
+```{r pref-models-plots, eval = TRUE, echo=FALSE, message=FALSE, warning=FALSE, results='asis'}
 
 #Overall effects
 
@@ -851,7 +851,7 @@ p2
 
 ## Plotting and modelling each individual BEHAVIOUR
 
-```{r behav-models-plots, eval = FALSE, echo=FALSE, message=FALSE, warning=FALSE, results='asis'}
+```{r behav-models-plots, eval = TRUE, echo=FALSE, message=FALSE, warning=FALSE, results='asis'}
 
 #Overall effects
 
@@ -1095,7 +1095,7 @@ aictab(cand.set = models, modnames = model.names, REML = FALSE) %>%
 
 ## Quantification of effects in each country 
 
-```{r country-effects, echo=FALSE, eval = FALSE, warning=FALSE, fig.align="center", fig.width=10, fig.height=8}
+```{r country-effects, echo=FALSE, eval = TRUE, warning=FALSE, fig.align="center", fig.width=10, fig.height=8}
 
 # cntry.list <- read.csv("data/List_countries.csv", sep = ",", header = TRUE) # list of countries
 cntry.list <- df %>%   select(c("isocode", "country"))
@@ -1235,7 +1235,7 @@ df.world$oecd <- factor(df.world$oecd, levels = c(0,1), labels = c("oecd", "not 
 
 # Map plots - preferences and behaviours
 
-```{r country-plots, echo=FALSE, eval = FALSE, fig.align="center", fig.width=10, fig.height=8}
+```{r country-plots, echo=FALSE, eval = TRUE, fig.align="center", fig.width=10, fig.height=8}
 
 # create function for plotting v = variable, name = name of variable
 
@@ -1303,7 +1303,7 @@ grid.arrange(p1, p2, p3, ncol = 2)
 
 ## GNI moderator
 
-```{r GNI-moderation, eval = FALSE, echo = FALSE, warning = FALSE}
+```{r GNI-moderation, eval = TRUE, echo = FALSE, warning = FALSE}
 
 ## Re-run models with GNI data
 
@@ -1392,7 +1392,7 @@ tab_model(mod_behav[[1]], mod_behav[[2]], mod_behav[[3]], transform = NULL)
 
 ## Family moderator
 
-```{r Family-moderation, eval = FALSE, echo = FALSE, warning = FALSE}
+```{r Family-moderation, eval = TRUE, echo = FALSE, warning = FALSE}
 
 
 # 1. Re-run PREFERENCE models with FAMILY
