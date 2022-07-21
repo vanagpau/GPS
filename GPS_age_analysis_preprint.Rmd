@@ -1399,6 +1399,9 @@ tab_model(mod_behav[[1]], mod_behav[[2]], mod_behav[[3]], transform = NULL)
 
 ```{r GNI-quartile-plots, eval = TRUE, echo = FALSE, warning = TRUE}
 
+## 2. GNI QUARTILE - PREFERENCES
+
+
 # initialise variables/lists
 p <- list() # list of plots
 mod_pref_quart <- list() # list of models
@@ -1417,9 +1420,6 @@ plot_quart <- function(d, lin, quad, y_lab, w) {
         axis.title.y = element_blank()) +
   ylim(-75, 50) 
 }
-
-
-
 
 for (v in 1:length(prefs)) { #loop of each preference
   
@@ -1479,8 +1479,101 @@ for (v in 1:length(prefs)) { #loop of each preference
 #   print(fixef(mod_pref_quart[[i]])["poly(age, 2)2"])
 # }
 
-mod_pref_quart2
+
 grid.arrange(plot1, plot2, plot3, plot4, nrow = 1)
+grid.arrange(plot5, plot6, plot7, plot8, nrow = 1)
+grid.arrange(plot9, plot10, plot11, plot12, nrow = 1)
+grid.arrange(plot13, plot14, plot15, plot16, nrow = 1)
+grid.arrange(plot17, plot18, plot19, plot20, nrow = 1)
+
+
+
+
+
+
+## 2. GNI QUARTILE - BEHAVIOURS
+
+# initialise variables/lists
+mod_behav_quart <- list() # list of models
+
+
+#define function for plotting quartiles
+# plot_quart <- function(d, lin, quad, y_lab, w) {
+#   ggplot(d, aes(x = age.r, y = (lin * age) + (quad * (age^2) ) )) +
+#   geom_smooth() +
+#     ggtitle(paste0(y_lab,"\nGNI Quartile ",w)) +
+#   scale_x_continuous(name = "Age") +
+#   theme_apa() +
+#   theme(plot.title = element_text(size = 10, hjust = 0.5),
+#         axis.text = element_markdown(size = 16),
+#         axis.title.x = element_markdown(size = 10),
+#         axis.title.y = element_blank()) +
+#   ylim(-75, 50) 
+# }
+
+for (v in 1:length(behavs)) { #loop of each behaviour
+  
+  behav <- behavs[v]
+  behav.lab <- behav.labs[v]
+  
+  for (w in 1:4) { # loop for each quartile
+
+
+  
+  # create dataframe for modelling/plotting cycling through outcome variables one by one
+  df.mod <- df %>% filter(gni.quart == w) %>% # filter by GNI quartile
+    dplyr::rename("outcome" = paste(behav)) %>% 
+    drop_na(c("outcome"))
+  
+  # NOTE: For speed of plotting cut out the model unless refit
+  
+  model.quad <- glmer(outcome ~ gender + financial_wellbeing + physical_wellbeing + subj_math_skills + poly(age,2) * gni +
+                       (1 | country) +
+                       # (0 + gender | country) +
+                       (0 + financial_wellbeing | country) +
+                       (0 + physical_wellbeing | country) +
+                       (0 + subj_math_skills | country) +
+                       (0 + age | country),
+                      nAGQ = 0, #estimate for speed
+                     data = df.mod, family = "binomial", 
+                     control = glmerControl(optimizer="bobyqa", optCtrl=list(maxfun=2e5)))
+
+  save(model.quad, file = paste0("output/",behav.lab, "_GNI_quartile",w,".RData"))
+
+  #load(file = paste0("output/",behav.lab, "_GNI_quartile",w,".RData"))
+  
+  # save html table to file (note: print is required as sjPlot does not render in Rmd)
+  #print(tab_model(model.quad, file = paste0(behav.lab, "_GNI_quartile",w,".html")))
+
+  mod_behav_quart[[i]] <- model.quad # First four models = behaviour 1, second four models behaviour 2 etc
+  assign(paste0("mod_behav_quart",i), model.quad, envir = .GlobalEnv)
+  
+  #Test models for singularity issues
+  print(paste0("mod_behav_quart",i))
+  print(paste0("Model has singular fit issue = ", isSingular(mod_behav_quart[[i]])))
+  
+  #Create plots
+  
+  p <- plot_quart(df.mod, fixef(model.quad)["poly(age, 2)1"], fixef(model.quad)["poly(age, 2)2"], behav.labs[ (((i-1)%/%4)+1) ], w ) # note: last term calculates behav.labs index
+  print(p)
+  assign(paste0("plot",i), p, envir = .GlobalEnv)
+  
+  i <- i+1 #increment index counter for models/plots
+  
+  }
+  
+}
+
+# like this
+# for (i in 1:length(mod_behav_quart)) {
+#   print(((i-1)%/%4)+1)
+#   print(fixef(mod_pref_quart[[i]])["poly(age, 2)1"])
+#   print(fixef(mod_pref_quart[[i]])["poly(age, 2)2"])
+# }
+
+
+grid.arrange(plot21, plot22, plot23, plot24, nrow = 1)
+
 
 
 
