@@ -796,8 +796,18 @@ for (v in 1:length(prefs)) {
   #first extract terms
   assign(paste0("linear.term",v), as.numeric(as_tibble(model_parameters(model.quad, effects = "fixed")) %>% filter(Parameter == "poly(age, 2)1") %>% select(Coefficient)))
   assign(paste0("quadratic.term",v), as.numeric(as_tibble(model_parameters(model.quad, effects = "fixed")) %>% filter(Parameter == "poly(age, 2)2") %>% select(Coefficient)))
+  assign(paste0("lin.std.error",v), as.numeric(as_tibble(model_parameters(model.quad, effects = "fixed")) %>% filter(Parameter == "poly(age, 2)1") %>% select(SE)))
+  assign(paste0("quad.std.error",v), as.numeric(as_tibble(model_parameters(model.quad, effects = "fixed")) %>% filter(Parameter == "poly(age, 2)2") %>% select(SE)))
   
+  
+  #Method 1 from here: https://stats.stackexchange.com/questions/446676/measuring-standard-error-of-two-or-more-coefficients-combined and here https://aosmith.rbind.io/2018/11/16/plot-fitted-lines/
  
+  a <- c(0,0,0,0,0,1,1) # vector to pick out coefficients from which to calculate SE - this depends on order of effects from summary(model.quad)
+  
+  assign(paste0("total.std.error",v), as.numeric(sqrt(t(a) %*% vcov(model.quad) %*% a)) ) #calculate std error of linear and quadratic terms combined and assign to total.std.error
+  
+  
+  
   # plot.age.continent <- plot.age + facet_wrap("continent")
   # 
   # print(plot.age.continent)
@@ -823,10 +833,15 @@ for (v in 1:length(prefs)) {
 
 #create function to plot from model coefficients
 
-plot_coeff <- function(d, lin, quad, y_lab) {
- ggplot(d, aes(x = age.r, y = (lin * age) + (quad * (age^2) ) )) +
+plot_coeff <- function(d, lin, quad, y_lab, SE) {
+  d$y <- (lin * d$age) + (quad * (d$age^2) )
+  d$CI_lower <- d$y - (1.96*SE) # 95% CI is 1.96 x Std Error
+  d$CI_upper <- d$y + (1.96*SE)
+ ggplot(d, aes(x = age.r, y = y)) +
    geom_smooth() +
-   scale_x_continuous(name = "Age") +
+   scale_x_continuous(name = "Age", breaks = c(seq(15, 75, 10)) ) +
+    geom_ribbon(aes(ymin = CI_lower, ymax = CI_upper), alpha=0.1, fill = "green", 
+              color = "black", linetype = "dotted") +
   theme_apa() +
   theme(axis.text = element_markdown(size = axtext),
         axis.title.x = element_markdown(size = axtitle/2),
@@ -834,17 +849,13 @@ plot_coeff <- function(d, lin, quad, y_lab) {
   ylim(-75, 50) + ylab(y_lab)
 }
   
-p1 <- plot_coeff(df.mod, linear.term1, quadratic.term1, pref.labs[1])  
-p2 <- plot_coeff(df.mod, linear.term2, quadratic.term2, pref.labs[2]) # Negative Reciprocity
-p3 <- plot_coeff(df.mod, linear.term3, quadratic.term3, pref.labs[3]) 
-p4 <- plot_coeff(df.mod, linear.term4, quadratic.term4, pref.labs[4]) 
-p5 <- plot_coeff(df.mod, linear.term5, quadratic.term5, pref.labs[5]) 
+p1 <- plot_coeff(df.mod, linear.term1, quadratic.term1, pref.labs[1], total.std.error1)  
+p2 <- plot_coeff(df.mod, linear.term2, quadratic.term2, pref.labs[2], total.std.error2) # Negative Reciprocity
+p3 <- plot_coeff(df.mod, linear.term3, quadratic.term3, pref.labs[3], total.std.error3) 
+p4 <- plot_coeff(df.mod, linear.term4, quadratic.term4, pref.labs[4], total.std.error4) 
+p5 <- plot_coeff(df.mod, linear.term5, quadratic.term5, pref.labs[5], total.std.error5) 
   
 grid.arrange(p1, p3, p4, p5)
-
-p2
- 
-#print(plot.coeff)
 
 
 ```
@@ -951,7 +962,15 @@ for (v in 1:length(behavs)) {
   #first extract terms (note these are labelled 6-8 hence v+5)
   assign(paste0("linear.term", v+5), as.numeric(as_tibble(model_parameters(model.quad, effects = "fixed")) %>% filter(Parameter == "poly(age, 2)1") %>% select(Coefficient)))
   assign(paste0("quadratic.term", v+5), as.numeric(as_tibble(model_parameters(model.quad, effects = "fixed")) %>% filter(Parameter == "poly(age, 2)2") %>% select(Coefficient)))
+ assign(paste0("lin.std.error",v), as.numeric(as_tibble(model_parameters(model.quad, effects = "fixed")) %>% filter(Parameter == "poly(age, 2)1") %>% select(SE)))
+  assign(paste0("quad.std.error",v), as.numeric(as_tibble(model_parameters(model.quad, effects = "fixed")) %>% filter(Parameter == "poly(age, 2)2") %>% select(SE)))
+  
+  
+  #Method 1 from here: https://stats.stackexchange.com/questions/446676/measuring-standard-error-of-two-or-more-coefficients-combined and here https://aosmith.rbind.io/2018/11/16/plot-fitted-lines/
  
+  a <- c(0,0,0,0,0,1,1) # vector to pick out coefficients from which to calculate SE - this depends on order of effects from summary(model.quad)
+  
+  assign(paste0("total.std.error",v+5), as.numeric(sqrt(t(a) %*% vcov(model.quad) %*% a)) ) #calculate std error of linear and quadratic terms combined and assign to total.std.error
   
   
 
@@ -981,9 +1000,9 @@ for (v in 1:length(behavs)) {
 
 #use previous plot_coeff function
 
-p6 <- plot_coeff(df.mod, linear.term6, quadratic.term6, behav.labs[1]) 
-p7 <- plot_coeff(df.mod, linear.term7, quadratic.term7, behav.labs[2]) 
-p8 <- plot_coeff(df.mod, linear.term8, quadratic.term8, behav.labs[3]) 
+p6 <- plot_coeff(df.mod, linear.term6, quadratic.term6, behav.labs[1], total.std.error6) 
+p7 <- plot_coeff(df.mod, linear.term7, quadratic.term7, behav.labs[2], total.std.error7) 
+p8 <- plot_coeff(df.mod, linear.term8, quadratic.term8, behav.labs[3], total.std.error8) 
 
 grid.arrange(p6, p7, p8, ncol = 2)
 
@@ -1405,7 +1424,7 @@ tab_model(mod_behav[[1]], mod_behav[[2]], mod_behav[[3]], transform = NULL)
 # initialise variables/lists
 p <- list() # list of plots
 mod_pref_quart <- list() # list of models
-i <- 1 # counter variable for naming plots/models
+i <- 1 # counter variable for naming models
 
 #define function for plotting quartiles
 plot_quart <- function(d, lin, quad, y_lab, w) {
@@ -1428,8 +1447,6 @@ for (v in 1:length(prefs)) { #loop of each preference
   
   for (w in 1:4) { # loop for each quartile
 
-
-  
   # create dataframe for modelling/plotting cycling through outcome variables one by one
   df.mod <- df %>% filter(gni.quart == w) %>% # filter by GNI quartile
     dplyr::rename("outcome" = paste(pref)) %>% 
@@ -1462,9 +1479,9 @@ for (v in 1:length(prefs)) { #loop of each preference
   
   #Create plots
   
-  p <- plot_quart(df.mod, fixef(model.quad)["poly(age, 2)1"], fixef(model.quad)["poly(age, 2)2"], pref.labs[ (((i-1)%/%4)+1) ], w ) # note: last term calculates pref.labs index
+  p <- plot_quart(df.mod, fixef(model.quad)["poly(age, 2)1"], fixef(model.quad)["poly(age, 2)2"], pref.lab, w ) # note: last term calculates pref.labs index
   print(p)
-  assign(paste0("plot",i), p, envir = .GlobalEnv)
+  assign(paste0("qplot",pref.lab,w), p, envir = .GlobalEnv)
   
   i <- i+1 #increment index counter for models/plots
   
@@ -1472,23 +1489,11 @@ for (v in 1:length(prefs)) { #loop of each preference
   
 }
 
-# like this
-# for (i in 1:length(mod_pref_quart)) {
-#   print(((i-1)%/%4)+1)
-#   print(fixef(mod_pref_quart[[i]])["poly(age, 2)1"])
-#   print(fixef(mod_pref_quart[[i]])["poly(age, 2)2"])
-# }
-
-
-grid.arrange(plot1, plot2, plot3, plot4, nrow = 1)
-grid.arrange(plot5, plot6, plot7, plot8, nrow = 1)
-grid.arrange(plot9, plot10, plot11, plot12, nrow = 1)
-grid.arrange(plot13, plot14, plot15, plot16, nrow = 1)
-grid.arrange(plot17, plot18, plot19, plot20, nrow = 1)
-
-
-
-
+grid.arrange(qplotProsociality1, qplotProsociality2, qplotProsociality3, `qplot Prosociality4`, nrow = 1)
+grid.arrange(qplotTrust1, qplotTrust2, qplotTrust3, qplotTrust4, nrow = 1)
+grid.arrange(qplotAltruism1, qplotAltruism2, qplotAltruism3, qplotAltruism4, nrow = 1)
+grid.arrange(`qplotPositive reciprocity1`, `qplotPositive reciprocity2`, `qplotPositive reciprocity3`, `qplotPositive reciprocity4`, nrow = 1)
+grid.arrange(`qplotNegative reciprocity1`, `qplotNegative reciprocity2`, `qplotNegative reciprocity3`, `qplotNegative reciprocity4`, nrow = 1)
 
 
 ## 2. GNI QUARTILE - BEHAVIOURS
@@ -1497,20 +1502,6 @@ grid.arrange(plot17, plot18, plot19, plot20, nrow = 1)
 mod_behav_quart <- list() # list of models
 
 
-#define function for plotting quartiles
-# plot_quart <- function(d, lin, quad, y_lab, w) {
-#   ggplot(d, aes(x = age.r, y = (lin * age) + (quad * (age^2) ) )) +
-#   geom_smooth() +
-#     ggtitle(paste0(y_lab,"\nGNI Quartile ",w)) +
-#   scale_x_continuous(name = "Age") +
-#   theme_apa() +
-#   theme(plot.title = element_text(size = 10, hjust = 0.5),
-#         axis.text = element_markdown(size = 16),
-#         axis.title.x = element_markdown(size = 10),
-#         axis.title.y = element_blank()) +
-#   ylim(-75, 50) 
-# }
-
 for (v in 1:length(behavs)) { #loop of each behaviour
   
   behav <- behavs[v]
@@ -1518,8 +1509,6 @@ for (v in 1:length(behavs)) { #loop of each behaviour
   
   for (w in 1:4) { # loop for each quartile
 
-
-  
   # create dataframe for modelling/plotting cycling through outcome variables one by one
   df.mod <- df %>% filter(gni.quart == w) %>% # filter by GNI quartile
     dplyr::rename("outcome" = paste(behav)) %>% 
@@ -1554,26 +1543,20 @@ for (v in 1:length(behavs)) { #loop of each behaviour
   
   #Create plots
   
-  p <- plot_quart(df.mod, fixef(model.quad)["poly(age, 2)1"], fixef(model.quad)["poly(age, 2)2"], behav.labs[ (((i-1)%/%4)+1) ], w ) # note: last term calculates behav.labs index
+  p <- plot_quart(df.mod, fixef(model.quad)["poly(age, 2)1"], fixef(model.quad)["poly(age, 2)2"], behav.lab, w ) # note: last term calculates behav.labs index - NEED TO FIX!
   print(p)
-  assign(paste0("plot",i), p, envir = .GlobalEnv)
+  assign(paste0("qplot",behav.lab,w), p, envir = .GlobalEnv)
   
-  i <- i+1 #increment index counter for models/plots
+    i <- i+1 #increment index counter for models
   
   }
   
 }
 
-# like this
-# for (i in 1:length(mod_behav_quart)) {
-#   print(((i-1)%/%4)+1)
-#   print(fixef(mod_pref_quart[[i]])["poly(age, 2)1"])
-#   print(fixef(mod_pref_quart[[i]])["poly(age, 2)2"])
-# }
 
-
-grid.arrange(plot21, plot22, plot23, plot24, nrow = 1)
-
+grid.arrange(`qplotDonating money1`, `qplotDonating money2`, `qplotDonating money3`, `qplotDonating money4`, nrow = 1)
+grid.arrange(qplotVolunteering1, qplotVolunteering2, qplotVolunteering3, qplotVolunteering4, nrow = 1)
+grid.arrange(`qplotHelping a stranger1`, `qplotHelping a stranger2`, `qplotHelping a stranger3`, `qplotHelping a stranger4`, nrow = 1)
 
 
 
@@ -1670,5 +1653,13 @@ for (v in 1:length(behavs)) {
 }
 
 tab_model(mod_behav[[1]], mod_behav[[2]], mod_behav[[3]], transform = NULL)
+
+```
+
+## GNI quartile model fits and plots  - NEW CODE
+
+```{r GNI-quartile-plots, eval = TRUE, echo = FALSE, warning = TRUE}
+
+
 
 ```
