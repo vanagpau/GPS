@@ -452,7 +452,7 @@ df %>% ggplot(aes(x = subj_math_skills)) + geom_histogram(colour="black", fill="
 
 
 # Correlation matrix of control variables and DV's
-c1 <- df %>% select(age, financial_wellbeing, physical_wellbeing, subj_math_skills, posrecip, negrecip, altruism, trust, WP108_raw, WP109_raw, WP110_raw, gender_index, prosocial_contrib) %>% cor(use = "complete.obs")
+c1 <- df %>% select(age, financial_wellbeing, physical_wellbeing, subj_math_skills, posrecip, negrecip, altruism, trust, WP108, WP109, WP110, gender_index, prosocial_contrib) %>% cor(use = "complete.obs")
 colnames(c1) <- c("Age", "Financial well-being", "Physical well-being", "Subjective Maths skills", "Positive Reciprocity", "Negative Reciprocity", "Altruism", "Trust", "Donated money", "Volunteered", "Helped a stranger", "Gender", "Prosocial composite")
 rownames(c1) <- c("Age", "Financial well-being", "Physical well-being", "Subjective Maths skills", "Positive Reciprocity", "Negative Reciprocity", "Altruism", "Trust", "Donated money", "Volunteered", "Helped a stranger", "Gender", "Prosocial composite")
 
@@ -473,7 +473,7 @@ cor.mtest <- function(mat, ...) {
 }
 
 # matrix of the p-value of the correlation with matched column and row names
-p.mat <- cor.mtest(df %>% select(age, financial_wellbeing, physical_wellbeing, subj_math_skills, posrecip, negrecip, altruism, trust, WP108_raw, WP109_raw, WP110_raw, gender_index, prosocial_contrib))
+p.mat <- cor.mtest(df %>% select(age, financial_wellbeing, physical_wellbeing, subj_math_skills, posrecip, negrecip, altruism, trust, WP108, WP109, WP110, gender_index, prosocial_contrib))
 colnames(p.mat) <- c("Age", "Financial well-being", "Physical well-being", "Subjective Maths skills", "Positive Reciprocity", "Negative Reciprocity", "Altruism", "Trust", "Donated money", "Volunteered", "Helped a stranger", "Gender", "Prosocial composite")
 rownames(p.mat) <- c("Age", "Financial well-being", "Physical well-being", "Subjective Maths skills", "Positive Reciprocity", "Negative Reciprocity", "Altruism", "Trust", "Donated money", "Volunteered", "Helped a stranger", "Gender", "Prosocial composite")
 
@@ -846,11 +846,31 @@ plot_coeff <- function(d, lin, quad, y_lab, SE) {
   theme(axis.text = element_markdown(size = axtext),
         axis.title.x = element_markdown(size = axtitle/2),
         axis.title.y = element_markdown(size = axtitle/2)) +
-  ylim(-75, 50) + ylab(y_lab)
+  ylim(-30, 50) + ylab(y_lab)
+}
+
+# MAX plot_coeff function
+plot_coeff_max <- function(d, lin, quad, y_lab, SE) {
+  d$y <- (lin * d$age) + (quad * (d$age^2) )
+  d$CI_lower <- d$y - (1.96*SE) # 95% CI is 1.96 x Std Error
+  d$CI_upper <- d$y + (1.96*SE)
+  peak <- which.max(d$y)
+ ggplot(d, aes(x = age.r, y = y)) +
+   geom_smooth() +
+   scale_x_continuous(name = "Age", breaks = c(seq(15, 75, 10)) ) +
+    geom_ribbon(aes(ymin = CI_lower, ymax = CI_upper), alpha=0.1, fill = "green", 
+              color = "black", linetype = "dotted") +
+   geom_vline(xintercept = d$age.r[peak], linetype = "dotted") +
+   annotate("text", x = d$age.r[peak] + 1, y = -15, label = paste0("Peak age = ", d$age.r[peak])) +
+  theme_apa() +
+  theme(axis.text = element_markdown(size = axtext),
+        axis.title.x = element_markdown(size = axtitle/2),
+        axis.title.y = element_markdown(size = axtitle/2)) +
+   ylim(-150, 120) + ylab(y_lab)
 }
 
 
-## TODAY'S JOB.. FIX THIS.. do the linear and quad line separately ..
+# Plot linear and quadratic on same function
 
 
 plot_linquad <- function(d, lin, quad, y_lab, SE_lin, SE_quad) {
@@ -862,11 +882,12 @@ plot_linquad <- function(d, lin, quad, y_lab, SE_lin, SE_quad) {
   d$CIlin_lower <- d$ylin - (1.96*SE_lin) # 95% CI is 1.96 x Std Error
   d$CIlin_upper <- d$ylin + (1.96*SE_lin)
   
-  ggplot(d) + geom_smooth(aes(x = age.r, y = yquad)) +
-  geom_smooth(aes(x = age.r, y = ylin )) +
+  ggplot(d) + 
+    geom_smooth(aes(x = age.r, y = yquad), colour = "green4") +
+    geom_smooth(aes(x = age.r, y = ylin)) +
     geom_ribbon(aes(x = age.r, ymin = CIquad_lower, ymax = CIquad_upper), alpha=0.1, fill = "green", 
               color = "black", linetype = "dotted") +
-    geom_ribbon(aes(x = age.r, ymin = CIlin_lower, ymax = CIlin_upper), alpha=0.1, fill = "green", 
+    geom_ribbon(aes(x = age.r, ymin = CIlin_lower, ymax = CIlin_upper), alpha=0.1, fill = "#66FFFF", 
               color = "black", linetype = "dotted") +
    scale_x_continuous(name = "Age", breaks = c(seq(15, 75, 10)) ) +
   theme_apa() +
@@ -876,21 +897,48 @@ plot_linquad <- function(d, lin, quad, y_lab, SE_lin, SE_quad) {
   ylim(-75, 50) + ylab(y_lab)
   
 }
-  
-plot_linquad(df.mod, linear.term1, quadratic.term1, pref.labs[1], lin.std.error1, quad.std.error1)  
 
+plot_linquad_max <- function(d, lin, quad, y_lab, SE_lin, SE_quad) {
+  d$yquad <- (lin * d$age) + (quad * (d$age^2) )
+  d$CIquad_lower <- d$yquad - (1.96*SE_quad) # 95% CI is 1.96 x Std Error
+  d$CIquad_upper <- d$yquad + (1.96*SE_quad)
+  peak <- which.max(d$yquad)
+  d$ylin <- (lin * d$age)
+  d$CIlin_lower <- d$ylin - (1.96*SE_lin) # 95% CI is 1.96 x Std Error
+  d$CIlin_upper <- d$ylin + (1.96*SE_lin)
+  
+  ggplot(d) + 
+    geom_smooth(aes(x = age.r, y = yquad), colour = "green4") +
+    geom_smooth(aes(x = age.r, y = ylin)) +
+    geom_ribbon(aes(x = age.r, ymin = CIquad_lower, ymax = CIquad_upper), alpha=0.1, fill = "green", 
+              color = "black", linetype = "dotted") +
+    geom_ribbon(aes(x = age.r, ymin = CIlin_lower, ymax = CIlin_upper), alpha=0.1, fill = "#66FFFF", 
+              color = "black", linetype = "dotted") +
+   geom_vline(xintercept = d$age.r[peak], linetype = "dotted") +
+   annotate("text", x = d$age.r[peak] + 1, y = -15, label = paste0("Peak age = ", d$age.r[peak])) +
+   scale_x_continuous(name = "Age", breaks = c(seq(15, 75, 10)) ) +
+  theme_apa() +
+  theme(axis.text = element_markdown(size = axtext),
+        axis.title.x = element_markdown(size = axtitle/2),
+        axis.title.y = element_markdown(size = axtitle/2)) +
+  ylim(-75, 50) + ylab(y_lab)
+  
+}
+  
+p1 <- plot_linquad_max(df.mod, linear.term1, quadratic.term1, pref.labs[1], lin.std.error1, quad.std.error1)  + ylim(-30, 20)
+p3 <- plot_coeff_max(df.mod, linear.term3, quadratic.term3, pref.labs[3], total.std.error3) + ylim(-30, 20)
 
 ##
   
-p1 <- plot_coeff(df.mod, linear.term1, quadratic.term1, pref.labs[1], total.std.error1)  
+#p1 <- plot_coeff(df.mod, linear.term1, quadratic.term1, pref.labs[1], total.std.error1)  
 p2 <- plot_coeff(df.mod, linear.term2, quadratic.term2, pref.labs[2], total.std.error2) # Negative Reciprocity
-p3 <- plot_coeff(df.mod, linear.term3, quadratic.term3, pref.labs[3], total.std.error3) 
+#p3 <- plot_coeff(df.mod, linear.term3, quadratic.term3, pref.labs[3], total.std.error3) 
 p4 <- plot_coeff(df.mod, linear.term4, quadratic.term4, pref.labs[4], total.std.error4) 
 p5 <- plot_coeff(df.mod, linear.term5, quadratic.term5, pref.labs[5], total.std.error5) # Trust
   
 grid.arrange(p1, p3, p4, p5)
 
-
+p2 + ylim(-100, 60)
 
 
 ```
@@ -1038,11 +1086,12 @@ for (v in 1:length(behavs)) {
 #Donating linear and quadratic plot
 plot_linquad(df.mod, linear.term6, quadratic.term6, behav.labs[1], lin.std.error6, quad.std.error6)  + ylim(-150, 120)
 
-#use previous plot_coeff function
 
-p6 <- plot_coeff(df.mod, linear.term6, quadratic.term6, behav.labs[1], total.std.error6) + ylim(-150, 120)
-p7 <- plot_coeff(df.mod, linear.term7, quadratic.term7, behav.labs[2], total.std.error7) + ylim(-150, 120)
-p8 <- plot_coeff(df.mod, linear.term8, quadratic.term8, behav.labs[3], total.std.error8) + ylim(-150, 120)
+p6 <- plot_linquad_max(df.mod, linear.term6, quadratic.term6, behav.labs[1], lin.std.error6, quad.std.error6)  + ylim(-150, 120)
+
+#p6 <- plot_coeff_max(df.mod, linear.term6, quadratic.term6, behav.labs[1], total.std.error6) 
+p7 <- plot_coeff_max(df.mod, linear.term7, quadratic.term7, behav.labs[2], total.std.error7)
+p8 <- plot_coeff_max(df.mod, linear.term8, quadratic.term8, behav.labs[3], total.std.error8)
 
 grid.arrange(p6, p7, p8, ncol = 2)
 
@@ -1531,7 +1580,7 @@ for (v in 1:length(prefs)) { #loop of each preference
   
   a <- c(0,0,0,0,0,1,1) # vector to pick out coefficients from which to calculate SE - this depends on order of effects from summary(model.quad)
 
-  p <- plot_quart(df.mod, fixef(model.quad)["poly(age, 2)1"], fixef(model.quad)["poly(age, 2)2"], pref.lab, w, as.numeric(sqrt(t(a) %*% vcov(model.quad) %*% a)) ) # note: last term calculates Std Error to pas to plot function
+  p <- plot_quart(df.mod, fixef(model.quad)["poly(age, 2)1"], fixef(model.quad)["poly(age, 2)2"], pref.lab, w, as.numeric(sqrt(t(a) %*% vcov(model.quad) %*% a)) )  + ylim (-30, 30)# note: as.numeric term calculates Std Error to pas to plot function
   print(p)
   assign(paste0("qplot",pref.lab,w), p, envir = .GlobalEnv)
   

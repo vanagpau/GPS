@@ -9,7 +9,8 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 
 require(pacman)
-pacman::p_load(rstudioapi,
+pacman::p_load(countrycode,
+               rstudioapi,
                tidyverse
 )
 
@@ -39,8 +40,10 @@ rm(WV6_Data_R_v20201117)
 # reverse scoring so more importance = larger number
 WV6$V4 <- 5 - WV6$V4
 
+WV6$isocode <- countrycode(WV6$cow, origin = "cown", destination = "iso3c")
+
 #create dataframe of ISOCODE and mean Family score
-fam_df <- WV6 %>% group_by(C_COW_ALPHA) %>% summarise(family = mean(V4, na.rm = TRUE)) %>% rename("isocode" = "C_COW_ALPHA")
+fam_df <- WV6 %>% group_by(isocode) %>% summarise(family = mean(V4, na.rm = TRUE))
 
 save(fam_df,file="family.Rda")
 
